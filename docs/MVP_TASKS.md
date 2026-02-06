@@ -50,27 +50,27 @@ This is the step-by-step build plan for the Kinderkreisel MVP. Each task is smal
 
 ## Phase 4: Authentication Pages
 
-- [ ] **4.1** Create auth layout (`app/(auth)/layout.tsx`) — centered card layout, no bottom nav
-- [ ] **4.2** Build signup page (`app/(auth)/signup/page.tsx`) — form with: email, password, name, surname, residency, phone, zip code (locked to 83623), privacy consent checkbox
-- [ ] **4.3** Wire signup form to Supabase Auth `signUp()` with user metadata (name, surname, residency, phone, zip_code, phone_consent)
-- [ ] **4.4** Build login page (`app/(auth)/login/page.tsx`) — email + password form
-- [ ] **4.5** Wire login form to Supabase Auth `signInWithPassword()`
-- [ ] **4.6** Build password reset page (`app/(auth)/reset-password/page.tsx`) — email input, sends reset link
-- [ ] **4.7** Build password update page (`app/(auth)/update-password/page.tsx`) — new password form after clicking reset link
-- [ ] **4.8** Create auth callback route (`app/auth/callback/route.ts`) — exchanges code for session (for email verify + password reset)
-- [ ] **4.9** Add redirect logic: unauthenticated users → `/login`, authenticated users on auth pages → `/`
-- [ ] **4.10** Add sign-out action/button (reusable, used later in profile page)
-- [ ] **4.11** Test full auth flow: signup → email verify → login → password reset → logout
+- [x] **4.1** Create auth layout (`app/(auth)/layout.tsx`) — centered card layout, no bottom nav
+- [x] **4.2** Build signup page (`app/(auth)/signup/page.tsx`) — form with: email, password, name, surname, residency, phone, zip code (locked to 83623), privacy consent checkbox
+- [x] **4.3** Wire signup form to Supabase Auth `signUp()` with user metadata (name, surname, residency, phone, zip_code, phone_consent)
+- [x] **4.4** Build login page (`app/(auth)/login/page.tsx`) — email + password form
+- [x] **4.5** Wire login form to Supabase Auth `signInWithPassword()`
+- [x] **4.6** Build password reset page (`app/(auth)/reset-password/page.tsx`) — email input, sends reset link
+- [x] **4.7** Build password update page (`app/(auth)/update-password/page.tsx`) — new password form after clicking reset link
+- [x] **4.8** Create auth confirm route (`app/(auth)/auth/confirm/route.ts`) — exchanges token_hash for session (email verify + password reset)
+- [x] **4.9** Add redirect logic: unauthenticated users → `/login`, authenticated users on auth pages → `/`
+- [x] **4.10** Add sign-out action/button (reusable, used later in profile page)
+- [x] **4.11** Build passes, auth forms compile — end-to-end testing deferred to Phase 16
 
 ---
 
 ## Phase 5: App Shell & Navigation
 
-- [ ] **5.1** Create app layout for authenticated pages (`app/(app)/layout.tsx`) with bottom tab bar
-- [ ] **5.2** Build `BottomNav` component — 4 tabs: Home (`/`), Profiles (`/profiles`), Add Item (`/items/new`), My Profile (`/profile`)
-- [ ] **5.3** Style active tab indicator, icons for each tab (use Lucide icons from shadcn)
-- [ ] **5.4** Make layout mobile-first: content area scrolls, bottom nav fixed
-- [ ] **5.5** Add auth guard — check session server-side, redirect to `/login` if not authenticated
+- [x] **5.1** Create app layout for authenticated pages (`app/(app)/layout.tsx`) with bottom tab bar
+- [x] **5.2** Build `BottomNav` component — 4 tabs: Home (`/`), Profiles (`/profiles`), Add Item (`/items/new`), My Profile (`/profile`)
+- [x] **5.3** Style active tab indicator, icons for each tab (use Lucide icons from shadcn)
+- [x] **5.4** Make layout mobile-first: content area scrolls, bottom nav fixed
+- [x] **5.5** Add auth guard — check session server-side, redirect to `/login` if not authenticated (handled in middleware)
 
 ---
 

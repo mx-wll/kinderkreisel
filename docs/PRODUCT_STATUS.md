@@ -32,7 +32,7 @@
 - [ ] Phone number revealed to buyer on reservation
 
 ### Navigation & Pages
-- [ ] Bottom tab bar (Home, Profiles, Add Item, My Profile)
+- [x] Bottom tab bar (Home, Profiles, Add Item, My Profile)
 - [ ] Home feed (items, newest first)
 - [ ] Profiles list (sorted by most items)
 - [ ] Add Item form
