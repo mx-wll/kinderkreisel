@@ -52,7 +52,11 @@ export type ItemWithSeller = Item & {
   seller: Pick<Profile, "id" | "name" | "avatar_url">;
 };
 
-export type ItemWithSellerAndReservation = ItemWithSeller & {
+export type ItemWithSellerDetail = Item & {
+  seller: Pick<Profile, "id" | "name" | "avatar_url" | "phone">;
+};
+
+export type ItemWithSellerAndReservation = ItemWithSellerDetail & {
   reservation: Reservation | null;
 };
 

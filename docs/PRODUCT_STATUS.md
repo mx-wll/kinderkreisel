@@ -10,38 +10,38 @@
 - [x] Sign in / sign out
 
 ### User Profiles
-- [ ] Profile creation on signup (database trigger)
-- [ ] View own profile
-- [ ] Edit profile (name, surname, residency, phone, children)
-- [ ] Upload / change / remove avatar
-- [ ] View other user profiles
+- [x] Profile creation on signup (database trigger)
+- [x] View own profile
+- [x] Edit profile (name, surname, residency, phone, children)
+- [x] Upload / change / remove avatar
+- [x] View other user profiles
 
 ### Items
-- [ ] Create item (photo, title, description, pricing)
-- [ ] Client-side image compression
-- [ ] Edit item
-- [ ] Delete item
-- [ ] 20 item limit per user
-- [ ] Item detail page
+- [x] Create item (photo, title, description, pricing)
+- [x] Client-side image compression
+- [x] Edit item
+- [x] Delete item
+- [x] 20 item limit per user
+- [x] Item detail page
 
 ### Reservation System
-- [ ] Reserve button (hidden on own items)
-- [ ] One reservation per item (first come, first served)
-- [ ] 48h auto-expiry (pg_cron)
-- [ ] Seller can cancel reservation
-- [ ] Phone number revealed to buyer on reservation
+- [x] Reserve button (hidden on own items)
+- [x] One reservation per item (first come, first served)
+- [x] 48h auto-expiry (pg_cron)
+- [x] Seller can cancel reservation
+- [x] Phone number revealed to buyer on reservation
 
 ### Navigation & Pages
 - [x] Bottom tab bar (Home, Profiles, Add Item, My Profile)
-- [ ] Home feed (items, newest first)
-- [ ] Profiles list (sorted by most items)
-- [ ] Add Item form
-- [ ] My Profile page
+- [x] Home feed (items, newest first)
+- [x] Profiles list (sorted by most items)
+- [x] Add Item form
+- [x] My Profile page
 
 ### Polish
-- [ ] Empty states with German CTAs
-- [ ] Privacy policy page
-- [ ] Account deletion (cascade all data)
+- [x] Empty states with German CTAs
+- [x] Privacy policy page
+- [x] Account deletion (cascade all data)
 - [x] Consent checkbox at signup
 - [ ] Seed script (10 users, 150 items)
 
@@ -49,9 +49,9 @@
 - [x] Next.js project setup
 - [x] Supabase project connected
 - [x] shadcn/ui installed
-- [ ] Database schema deployed
-- [ ] RLS policies applied
-- [ ] Storage buckets created
+- [x] Database schema deployed
+- [x] RLS policies applied
+- [x] Storage buckets created
 - [ ] Vercel deployment
 
 ---
