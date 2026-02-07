@@ -222,6 +222,10 @@ export default async function ItemDetailPage({
                   </a>
                 </Button>
               </div>
+              <CancelReservationButton
+                reservationId={typedReservation.id}
+                itemId={id}
+              />
             </div>
           )}
 
