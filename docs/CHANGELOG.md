@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-02-07 (seed)
+
+### Added
+- [seed] Seed script (`scripts/seed.ts`) — uploads stock images for seed items via user auth
+- [seed] 10 dummy users with German names, profiles, and phone numbers
+- [seed] 150 items with stock photos from picsum.photos, German titles/descriptions, random pricing
+- [infra] `pnpm seed` command in package.json
+- [deps] tsx, dotenv (dev dependencies)
+
+---
+
 ## 2026-02-07
 
 ### Added

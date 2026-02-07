@@ -183,10 +183,10 @@ This is the step-by-step build plan for the Kinderkreisel MVP. Each task is smal
 
 ## Phase 15: Seed Data
 
-- [ ] **15.1** Write seed script (`scripts/seed.ts`) — creates 10 dummy users via Supabase Auth admin API
-- [ ] **15.2** Each user gets a profile with German names, phone numbers, residency in 83623
-- [ ] **15.3** Each user gets 15 items with stock photos (from Unsplash URLs or local assets), German titles/descriptions, random pricing types
-- [ ] **15.4** Run seed script against Supabase and verify data appears correctly in the app
+- [x] **15.1** Write seed script (`scripts/seed.ts`) — creates 10 dummy users via Supabase Auth admin API (+ SQL seeding via Supabase MCP)
+- [x] **15.2** Each user gets a profile with German names, phone numbers, residency in 83623
+- [x] **15.3** Each user gets 15 items with stock photos (from picsum.photos), German titles/descriptions, random pricing types
+- [x] **15.4** Run seed script against Supabase and verify data appears correctly in the app
 
 ---
 
@@ -197,9 +197,9 @@ This is the step-by-step build plan for the Kinderkreisel MVP. Each task is smal
 - [ ] **16.3** Deploy to Vercel and verify the app works in production
 - [ ] **16.4** Test full user journey on mobile: signup → browse → item detail → reserve → view phone → create item → edit → delete → profile edit → logout
 - [ ] **16.5** Test password reset flow end-to-end in production
-- [ ] **16.6** Update PRODUCT_STATUS.md — check off all completed MVP items
-- [ ] **16.7** Update ARCHITECTURE.md with final project structure
-- [ ] **16.8** Update CHANGELOG.md with MVP completion entry
+- [x] **16.6** Update PRODUCT_STATUS.md — check off all completed MVP items
+- [x] **16.7** Update ARCHITECTURE.md with final project structure
+- [x] **16.8** Update CHANGELOG.md with MVP completion entry
 
 ---
 

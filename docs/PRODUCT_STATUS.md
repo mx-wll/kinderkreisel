@@ -43,7 +43,7 @@
 - [x] Privacy policy page
 - [x] Account deletion (cascade all data)
 - [x] Consent checkbox at signup
-- [ ] Seed script (10 users, 150 items)
+- [x] Seed script (10 users, 150 items)
 
 ### Infrastructure
 - [x] Next.js project setup
