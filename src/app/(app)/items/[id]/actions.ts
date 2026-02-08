@@ -53,7 +53,7 @@ export async function cancelReservation(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Nicht angemeldet." };
 
-  // Cancel reservation (RLS ensures only seller can update)
+  // Cancel reservation (RLS allows seller or buyer to update)
   const { error: cancelError } = await supabase
     .from("reservations")
     .update({ status: "cancelled" })
