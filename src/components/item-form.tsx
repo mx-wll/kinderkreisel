@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/select";
 import { ImageUpload } from "@/components/image-upload";
 import { toast } from "sonner";
-import type { PricingType } from "@/lib/types/database";
+import type { PricingType, Category } from "@/lib/types/database";
+import { CLOTHING_SIZES } from "@/lib/types/database";
 
 type ItemFormProps = {
   mode: "create" | "edit";
@@ -26,6 +27,8 @@ type ItemFormProps = {
     description: string;
     pricing_type: PricingType;
     pricing_detail: string | null;
+    category: Category;
+    size: string | null;
     image_url: string;
   };
   existingImageUrl?: string;
@@ -45,6 +48,10 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
   const [pricingDetail, setPricingDetail] = useState(
     initialData?.pricing_detail ?? ""
   );
+  const [category, setCategory] = useState<Category>(
+    initialData?.category ?? "other"
+  );
+  const [size, setSize] = useState(initialData?.size ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -68,6 +75,10 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
     }
     if (description.length > 1000) {
       toast.error("Die Beschreibung darf maximal 1000 Zeichen lang sein.");
+      return;
+    }
+    if (category === "clothes" && !size) {
+      toast.error("Bitte wähle eine Größe für Kleidung aus.");
       return;
     }
 
@@ -121,6 +132,8 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
             description: description.trim(),
             pricing_type: pricingType,
             pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
+            category,
+            size: category === "clothes" ? size : null,
             image_url: storagePath,
             status: "available",
           });
@@ -164,6 +177,8 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
               description: description.trim(),
               pricing_type: pricingType,
               pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
+              category,
+              size: category === "clothes" ? size : null,
               image_url: storagePath,
             })
             .eq("id", initialData.id);
@@ -221,6 +236,44 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
           {description.length}/1000 Zeichen
         </p>
       </div>
+
+      <div className="space-y-2">
+        <Label>Kategorie</Label>
+        <Select
+          value={category}
+          onValueChange={(val) => {
+            const next = val as Category;
+            setCategory(next);
+            if (next !== "clothes") setSize("");
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="clothes">Kleidung</SelectItem>
+            <SelectItem value="other">Sonstiges</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {category === "clothes" && (
+        <div className="space-y-2">
+          <Label>Größe</Label>
+          <Select value={size} onValueChange={setSize}>
+            <SelectTrigger>
+              <SelectValue placeholder="Größe wählen…" />
+            </SelectTrigger>
+            <SelectContent>
+              {CLOTHING_SIZES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Wie möchtest du den Artikel abgeben?</Label>

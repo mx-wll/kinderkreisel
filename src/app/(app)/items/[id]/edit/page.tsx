@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getStorageUrl } from "@/lib/utils";
 import { ItemForm } from "@/components/item-form";
-import type { PricingType } from "@/lib/types/database";
+import type { PricingType, Category } from "@/lib/types/database";
 
 export default async function EditItemPage({
   params,
@@ -43,6 +43,8 @@ export default async function EditItemPage({
             description: item.description,
             pricing_type: item.pricing_type as PricingType,
             pricing_detail: item.pricing_detail,
+            category: (item.category as Category) ?? "other",
+            size: item.size ?? null,
             image_url: item.image_url,
           }}
           existingImageUrl={getStorageUrl("items", item.image_url)}
