@@ -1,12 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { ItemCard } from "@/components/item-card";
 import { RefreshButton } from "@/components/refresh-button";
+import { SearchFilter } from "@/components/search-filter";
 import type { ItemWithSeller } from "@/lib/types/database";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; pricing?: string }>;
+}) {
+  const { q, pricing } = await searchParams;
   const supabase = await createClient();
 
-  const { data: items } = await supabase
+  let query = supabase
     .from("items")
     .select(
       `
@@ -18,10 +24,20 @@ export default async function HomePage() {
       )
     `
     )
-    .eq("status", "available")
-    .order("created_at", { ascending: false });
+    .eq("status", "available");
+
+  if (q) {
+    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+  }
+
+  if (pricing) {
+    query = query.eq("pricing_type", pricing);
+  }
+
+  const { data: items } = await query.order("created_at", { ascending: false });
 
   const feed = (items ?? []) as unknown as ItemWithSeller[];
+  const hasFilters = !!(q || pricing);
 
   return (
     <div className="px-4 py-6">
@@ -35,10 +51,14 @@ export default async function HomePage() {
         <RefreshButton />
       </div>
 
+      <SearchFilter />
+
       {feed.length === 0 ? (
         <div className="mt-16 flex flex-col items-center justify-center text-center">
           <p className="text-muted-foreground">
-            Noch keine Artikel vorhanden.
+            {hasFilters
+              ? "Keine Artikel gefunden. Versuch es mit einem anderen Suchbegriff."
+              : "Noch keine Artikel vorhanden."}
           </p>
         </div>
       ) : (
