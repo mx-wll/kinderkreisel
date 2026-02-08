@@ -37,7 +37,14 @@ export function ItemCard({ item }: { item: ItemWithSeller }) {
       </div>
 
       <div className="p-3">
-        <h3 className="truncate font-medium leading-tight">{item.title}</h3>
+        <h3 className="truncate font-medium leading-tight">
+          {item.title}
+          {item.size && (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              · Gr. {item.size}
+            </span>
+          )}
+        </h3>
 
         <div className="mt-2 flex items-center gap-2">
           <Avatar className="h-5 w-5">

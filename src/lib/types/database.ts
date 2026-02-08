@@ -23,6 +23,14 @@ export type PricingType = "free" | "lending" | "other";
 
 export type ItemStatus = "available" | "reserved";
 
+export type Category = "clothes" | "other";
+
+export const CLOTHING_SIZES = [
+  "50", "56", "62", "68", "74", "80", "86", "92", "98",
+  "104", "110", "116", "122", "128", "134", "140", "146",
+  "152", "158", "164", "170", "176",
+] as const;
+
 export type Item = {
   id: string;
   seller_id: string;
@@ -30,6 +38,8 @@ export type Item = {
   description: string;
   pricing_type: PricingType;
   pricing_detail: string | null;
+  category: Category;
+  size: string | null;
   image_url: string;
   status: ItemStatus;
   created_at: string;
