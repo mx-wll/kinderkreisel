@@ -121,16 +121,27 @@ export function ChatView({
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      sender_id: currentUserId,
-      content,
-    });
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: currentUserId,
+        content,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       // Remove optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
       setInput(content);
+    } else {
+      // Replace optimistic ID with real DB ID so real-time dedup works
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === optimisticMsg.id ? { ...m, id: data.id } : m
+        )
+      );
     }
 
     setSending(false);
@@ -144,9 +155,9 @@ export function ChatView({
   const otherInitial = otherUser.name?.charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b bg-background px-3 py-2">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background px-3 py-2">
         <Link
           href="/messages"
           className="flex-shrink-0 rounded-full p-1 hover:bg-accent"
