@@ -63,7 +63,7 @@
 - [x] In-app chat (per item, real-time via Supabase Realtime)
 - [ ] Item browsing page with search
 - [ ] Filter by type, monetization, child age
-- [ ] Email notifications for reservations
+- [x] Email notifications (reservations + new messages via Resend)
 
 ---
 

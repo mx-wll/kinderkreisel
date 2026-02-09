@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +27,13 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "1") {
+      toast.success("E-Mail bestätigt! Du kannst dich jetzt einloggen.");
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

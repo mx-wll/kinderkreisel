@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!error) {
+      // For signup confirmation, sign out so user lands on login page
+      // (middleware would otherwise redirect authenticated users away from /login)
+      if (type === "signup" && next === "/login") {
+        await supabase.auth.signOut();
+      }
       redirect(next);
     } else {
       redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
