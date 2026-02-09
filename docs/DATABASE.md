@@ -18,6 +18,12 @@ auth.users (managed by Supabase)
             │       └─── reservations (1:1 active)
             │
             └─── reservations (1:many, as buyer)
+            │
+            ├─── conversations (1:many, as buyer or seller)
+            │       │
+            │       └─── messages (1:many)
+            │
+            └─── messages (1:many, as sender)
 ```
 
 ## Tables
@@ -77,6 +83,32 @@ Created automatically via a database trigger when a new user signs up in `auth.u
 
 **Constraint**: Unique on (item_id) WHERE status = 'active' — enforces one active reservation per item.
 
+### conversations
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | no | gen_random_uuid() | PK |
+| item_id | uuid | no | — | FK → items.id, ON DELETE CASCADE |
+| buyer_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE (initiator) |
+| seller_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE (item owner) |
+| created_at | timestamptz | no | now() | |
+| updated_at | timestamptz | no | now() | Updated via moddatetime trigger + message insert trigger |
+
+**Constraint**: UNIQUE(item_id, buyer_id) — one conversation per buyer per item.
+
+### messages
+
+| Column | Type | Nullable | Default | Notes |
+|--------|------|----------|---------|-------|
+| id | uuid | no | gen_random_uuid() | PK |
+| conversation_id | uuid | no | — | FK → conversations.id, ON DELETE CASCADE |
+| sender_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE |
+| content | text | no | — | Max 2000 chars (CHECK constraint) |
+| read_at | timestamptz | yes | null | NULL = unread, set when recipient opens conversation |
+| created_at | timestamptz | no | now() | |
+
+**Realtime**: Added to `supabase_realtime` publication for live message delivery.
+
 ## Storage Buckets
 
 | Bucket | Public | Purpose |
@@ -124,6 +156,24 @@ Both buckets are publicly readable (images need to display without auth). Upload
 | UPDATE | Only the seller can cancel (update status to 'cancelled') |
 | DELETE | Not allowed via API |
 
+### conversations
+
+| Operation | Policy |
+|-----------|--------|
+| SELECT | Participant only (buyer_id or seller_id = auth.uid()) |
+| INSERT | Buyer only (auth.uid() = buyer_id) |
+| UPDATE | Participant only (for updated_at) |
+| DELETE | Not allowed via API |
+
+### messages
+
+| Operation | Policy |
+|-----------|--------|
+| SELECT | User is participant of the conversation (join to conversations) |
+| INSERT | User is participant of the conversation AND sender_id = auth.uid() |
+| UPDATE | Recipient only (sender_id != auth.uid()), for marking read_at |
+| DELETE | Not allowed via API |
+
 ## Triggers & Functions
 
 ### on_auth_user_created
@@ -135,6 +185,16 @@ Both buckets are publicly readable (images need to display without auth). Upload
 
 - **Event**: Before UPDATE on `profiles`, `items`
 - **Action**: Sets `updated_at = now()`
+
+### handle_conversations_updated_at
+
+- **Event**: Before UPDATE on `conversations`
+- **Action**: Sets `updated_at = now()` via moddatetime extension
+
+### update_conversation_updated_at
+
+- **Event**: After INSERT on `messages`
+- **Action**: Updates the parent conversation's `updated_at` to now(), so conversation list sorts by latest message
 
 ### expire_reservations (Cron)
 
@@ -152,3 +212,6 @@ Both buckets are publicly readable (images need to display without auth). Upload
 | reservations | item_id, status | btree (partial: WHERE status = 'active') | Fast active reservation lookup |
 | reservations | buyer_id | btree | User's reservations |
 | profiles | id | btree (PK) | Already indexed |
+| conversations | buyer_id | btree | User's conversations as buyer |
+| conversations | seller_id | btree | User's conversations as seller |
+| messages | conversation_id | btree | Messages per conversation |

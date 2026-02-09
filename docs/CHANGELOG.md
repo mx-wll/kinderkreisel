@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-02-09
+
+### Added
+- [chat] In-app messaging system — conversations tied to items, real-time message delivery via Supabase Postgres Changes
+- [chat] Conversation list page (`/messages`) — item thumbnails, other user avatar, last message preview, unread counts
+- [chat] Conversation detail page (`/messages/[id]`) — full-screen chat with message bubbles, optimistic sends, auto-scroll
+- [chat] "Nachricht schreiben" button on item detail pages for non-owners
+- [chat] UnreadBadge component — real-time unread count on Nachrichten nav tab
+- [chat] StartChatButton component — creates or navigates to existing conversation
+- [chat] ChatView component — real-time subscription, mark-as-read, keyboard-safe iOS layout
+- [nav] "Nachrichten" tab added to bottom navigation (5 tabs total)
+- [db] `conversations` table with UNIQUE(item_id, buyer_id), RLS, moddatetime trigger
+- [db] `messages` table with 2000-char limit, RLS, Supabase Realtime publication
+- [db] Trigger to auto-update `conversations.updated_at` on new message insert
+- [types] `Conversation`, `Message`, `ConversationWithDetails`, `MessageWithSender` types
+
+### Fixed
+- [chat] iOS Safari keyboard pushing header off-screen — added `interactive-widget=resizes-content` to viewport meta
+- [chat] Duplicate messages on send — optimistic UUID now swapped with real DB ID for real-time dedup
+
+---
+
 ## 2026-02-07 (seed)
 
 ### Added

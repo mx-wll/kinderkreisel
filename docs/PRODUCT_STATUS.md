@@ -32,7 +32,7 @@
 - [x] Phone number revealed to buyer on reservation
 
 ### Navigation & Pages
-- [x] Bottom tab bar (Home, Profiles, Add Item, My Profile)
+- [x] Bottom tab bar (Home, Stöbern, Einstellen, Nachrichten, Profil)
 - [x] Home feed (items, newest first)
 - [x] Profiles list (sorted by most items)
 - [x] Add Item form
@@ -60,7 +60,7 @@
 
 - [ ] Google social login
 - [ ] Apple social login
-- [ ] In-app chat (per item)
+- [x] In-app chat (per item, real-time via Supabase Realtime)
 - [ ] Item browsing page with search
 - [ ] Filter by type, monetization, child age
 - [ ] Email notifications for reservations

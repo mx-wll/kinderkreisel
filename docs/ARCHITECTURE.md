@@ -11,14 +11,15 @@ Browser (PWA)
     │
     ├── Next.js App (Vercel)
     │     ├── App Router (React 19 Server Components)
-    │     ├── Server Actions (reserve, cancel reservation)
+    │     ├── Server Actions (reserve, cancel reservation, start chat)
     │     ├── API Routes (account deletion)
     │     ├── shadcn/ui components
     │     └── Client-side image compression
     │
     └── Supabase
           ├── Auth (email/password, email verification)
-          ├── Postgres (profiles, items, reservations, children)
+          ├── Postgres (profiles, items, reservations, children, conversations, messages)
+          ├── Realtime (postgres_changes on messages table)
           ├── Storage (avatars, item photos)
           ├── RLS (row-level security on all tables)
           └── pg_cron (reservation expiry every 15 min)
@@ -54,10 +55,16 @@ kinderkreisel/
 │   │   │   │       ├── loading.tsx      # Item detail skeleton
 │   │   │   │       ├── not-found.tsx    # Item 404
 │   │   │   │       ├── actions.ts       # Server actions (reserve, cancel)
+│   │   │   │       ├── chat-action.ts   # Server action (start/find chat)
 │   │   │   │       ├── reserve-button.tsx
 │   │   │   │       ├── cancel-reservation-button.tsx
 │   │   │   │       ├── edit/    # /items/[id]/edit
 │   │   │   │       └── delete/  # /items/[id]/delete
+│   │   │   ├── messages/
+│   │   │   │   ├── page.tsx             # Conversation list (/messages)
+│   │   │   │   └── [id]/
+│   │   │   │       ├── layout.tsx       # Full-screen overlay (hides bottom nav)
+│   │   │   │       └── page.tsx         # Conversation detail
 │   │   │   ├── profile/
 │   │   │   │   ├── page.tsx             # My profile (view/edit, items, reservations)
 │   │   │   │   ├── loading.tsx          # Profile skeleton
@@ -78,10 +85,13 @@ kinderkreisel/
 │   │   ├── forgot-password-form.tsx
 │   │   ├── update-password-form.tsx
 │   │   ├── logout-button.tsx
-│   │   ├── bottom-nav.tsx
+│   │   ├── bottom-nav.tsx       # 5-tab nav (Home, Stöbern, Einstellen, Nachrichten, Profil)
 │   │   ├── item-card.tsx        # Feed card (image, badge, seller, time)
 │   │   ├── item-form.tsx        # Reusable create/edit form
 │   │   ├── image-upload.tsx     # Image picker with compression
+│   │   ├── chat-view.tsx        # Chat UI (messages, real-time, send, mark-as-read)
+│   │   ├── start-chat-button.tsx # "Nachricht schreiben" button
+│   │   ├── unread-badge.tsx     # Real-time unread count badge
 │   │   ├── profile-card.tsx     # Profiles list card
 │   │   ├── profile-form.tsx     # Profile edit form
 │   │   ├── avatar-upload.tsx    # Avatar upload/remove
@@ -120,9 +130,11 @@ See [DATABASE.md](./DATABASE.md) for full schema, RLS policies, triggers, and in
 | `/profiles` | Done | User profiles list (sorted by item count) |
 | `/profiles/[id]` | Done | Other user's profile + their items |
 | `/items/new` | Done | Create new item (with 20-item limit) |
-| `/items/[id]` | Done | Item detail (reserve, contact, edit/delete) |
+| `/items/[id]` | Done | Item detail (reserve, contact, chat, edit/delete) |
 | `/items/[id]/edit` | Done | Edit item (seller only) |
 | `/items/[id]/delete` | Done | Delete item confirmation (seller only) |
+| `/messages` | Done | Conversation list (unread counts, last message) |
+| `/messages/[id]` | Done | Conversation detail (real-time chat) |
 | `/profile` | Done | Own profile (view/edit, manage items & reservations) |
 | `/privacy` | Done | Privacy policy (GDPR) |
 | `/impressum` | Done | Legal notice (placeholder) |
