@@ -65,7 +65,7 @@ export function SignUpForm({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/login?verified=1")}`,
           data: {
             name: formData.name,
             surname: formData.surname,
