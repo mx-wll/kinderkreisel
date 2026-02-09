@@ -42,6 +42,8 @@ Created automatically via a database trigger when a new user signs up in `auth.u
 | phone | text | no | — | |
 | avatar_url | text | yes | null | Path in Supabase Storage |
 | phone_consent | boolean | no | false | User consented to phone sharing on reservation |
+| email_notifications | boolean | no | true | Opt-out toggle for reservation + message digest emails |
+| last_message_email_at | timestamptz | no | now() | Tracks when last message digest email was sent; defaults to now() so existing users don't get a backlog |
 | created_at | timestamptz | no | now() | |
 | updated_at | timestamptz | no | now() | Updated via trigger |
 
@@ -201,16 +203,24 @@ Both buckets are publicly readable (images need to display without auth). Upload
 - **Event**: After INSERT on `reservations`
 - **Action**: Calls Edge Function `send-notification` via `pg_net` HTTP POST — sends email to seller with buyer name and item title
 
-### on_message_send_notification
-
-- **Event**: After INSERT on `messages`
-- **Action**: Calls Edge Function `send-notification` via `pg_net` HTTP POST — sends email to other conversation participant with sender name and message preview
-
 ### expire_reservations (Cron)
 
 - **Mechanism**: Supabase `pg_cron` extension (available on free tier)
 - **Schedule**: Runs every 15 minutes
 - **Action**: Updates reservations where `expires_at < now()` AND `status = 'active'` → sets `status = 'expired'` and sets the corresponding item's `status` back to `'available'`
+
+### send_message_digest (Cron)
+
+- **Mechanism**: Supabase `pg_cron` + `pg_net` → Edge Function `send-message-digest`
+- **Schedule**: Every 6 hours (`0 */6 * * *`)
+- **Action**: Calls Edge Function that queries unread messages since each user's `last_message_email_at`, groups by conversation, sends a digest email via Resend, and updates `last_message_email_at`
+
+### get_unread_messages_for_digest (RPC)
+
+- **Type**: SQL function (`SECURITY DEFINER`)
+- **Parameters**: `p_user_id uuid`, `p_since timestamptz`
+- **Returns**: Unread messages (not sent by user, `read_at IS NULL`, `created_at > p_since`) with sender name/surname, item title, conversation ID
+- **Used by**: Edge Function `send-message-digest`
 
 ## Indexes
 

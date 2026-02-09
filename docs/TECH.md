@@ -51,13 +51,22 @@ Handled entirely by Supabase Auth:
 ## Email Notifications
 
 - **Provider**: Resend (free tier: 100 emails/day)
-- **Trigger**: Database webhook via `pg_net` triggers on `messages` and `reservations` tables
-- **Edge Function**: `send-notification` — deployed on Supabase, receives webhook payload, queries recipient details, sends email via Resend API
-- **Events**:
-  - New reservation → seller receives email with buyer name and item title
-  - New message → other conversation participant receives email with sender name and message preview
 - **Sender**: `Kinderkreisel <onboarding@resend.dev>` (Resend test domain — upgrade to custom domain later)
 - **Secret**: `RESEND_API_KEY` stored as Supabase Edge Function secret
+- **Opt-out**: Users can disable via `email_notifications` toggle on profile page
+
+### Reservation notifications (instant)
+
+- **Trigger**: `pg_net` trigger on `reservations` table → Edge Function `send-notification`
+- **Event**: New reservation → seller receives email with buyer name and item title
+- **Rationale**: Time-sensitive (48h expiry), must be instant
+
+### Message digest (batched, every 6 hours)
+
+- **Trigger**: `pg_cron` job (`0 */6 * * *`) → `pg_net` POST → Edge Function `send-message-digest`
+- **Logic**: Queries unread messages since `profiles.last_message_email_at`, groups by conversation, sends one digest email per user
+- **Tracking**: `last_message_email_at` column on `profiles` updated after each digest send
+- **RPC**: `get_unread_messages_for_digest(p_user_id, p_since)` — SQL function used by Edge Function
 
 ## Reservation Expiry
 

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 ## 2026-02-09
 
 ### Added
+- [notifications] Batch message digest emails — replaces per-message instant emails with a 6-hourly digest
+- [notifications] Edge Function `send-message-digest` — queries unread messages, groups by conversation, sends digest via Resend
+- [db] `last_message_email_at` column on `profiles` (default `now()`) — tracks last digest send per user
+- [db] `get_unread_messages_for_digest` SQL function (RPC) — returns unread messages for a user since a given timestamp
+- [db] `pg_cron` job `send-message-digest` — runs every 6 hours, calls Edge Function via `pg_net`
+- [db] Vault secrets `project_url` and `anon_key` — used by cron job to invoke Edge Functions securely
+
+### Changed
+- [notifications] Edge Function `send-notification` v4 — removed `handleMessage()`, now only handles reservation notifications
+- [notifications] Message emails are now batched (6h digest) instead of instant; reservation emails remain instant
+
+### Removed
+- [db] Trigger `on_message_send_notification` and function `notify_on_message()` — replaced by cron-based digest
+
+---
+
+## 2026-02-09 (earlier)
+
+### Added
 - [notifications] Email notifications via Resend + Supabase Edge Function (`send-notification`)
 - [notifications] New reservation → seller receives email with buyer name, item title, and link to item
 - [notifications] New chat message → recipient receives email with sender name, message preview, and link to conversation
