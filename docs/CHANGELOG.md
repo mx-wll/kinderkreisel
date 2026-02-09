@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## 2026-02-09
 
 ### Added
+- [notifications] Email notifications via Resend + Supabase Edge Function (`send-notification`)
+- [notifications] New reservation → seller receives email with buyer name, item title, and link to item
+- [notifications] New chat message → recipient receives email with sender name, message preview, and link to conversation
+- [db] `pg_net` extension enabled for async HTTP from database triggers
+- [db] `notify_on_reservation()` trigger function — sends webhook to Edge Function on new reservation
+- [db] `notify_on_message()` trigger function — sends webhook to Edge Function on new message
 - [chat] In-app messaging system — conversations tied to items, real-time message delivery via Supabase Postgres Changes
 - [chat] Conversation list page (`/messages`) — item thumbnails, other user avatar, last message preview, unread counts
 - [chat] Conversation detail page (`/messages/[id]`) — full-screen chat with message bubbles, optimistic sends, auto-scroll

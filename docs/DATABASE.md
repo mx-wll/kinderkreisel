@@ -196,6 +196,16 @@ Both buckets are publicly readable (images need to display without auth). Upload
 - **Event**: After INSERT on `messages`
 - **Action**: Updates the parent conversation's `updated_at` to now(), so conversation list sorts by latest message
 
+### on_reservation_send_notification
+
+- **Event**: After INSERT on `reservations`
+- **Action**: Calls Edge Function `send-notification` via `pg_net` HTTP POST — sends email to seller with buyer name and item title
+
+### on_message_send_notification
+
+- **Event**: After INSERT on `messages`
+- **Action**: Calls Edge Function `send-notification` via `pg_net` HTTP POST — sends email to other conversation participant with sender name and message preview
+
 ### expire_reservations (Cron)
 
 - **Mechanism**: Supabase `pg_cron` extension (available on free tier)

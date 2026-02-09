@@ -20,8 +20,10 @@ Browser (PWA)
           ├── Auth (email/password, email verification)
           ├── Postgres (profiles, items, reservations, children, conversations, messages)
           ├── Realtime (postgres_changes on messages table)
+          ├── Edge Functions (send-notification → Resend email API)
           ├── Storage (avatars, item photos)
           ├── RLS (row-level security on all tables)
+          ├── pg_net (async HTTP from triggers → Edge Functions)
           └── pg_cron (reservation expiry every 15 min)
 ```
 

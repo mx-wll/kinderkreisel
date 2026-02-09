@@ -27,6 +27,8 @@ See `.env.example` in the project root.
 |----------|-------------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes (client-side) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key | Yes (client-side, protected by RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only, for account deletion) | No |
+| `RESEND_API_KEY` | Resend API key (set as Supabase Edge Function secret) | No |
 
 ## Authentication
 
@@ -45,6 +47,17 @@ Handled entirely by Supabase Auth:
 - Bucket paths:
   - Avatars: `avatars/{user_id}/avatar.{ext}`
   - Items: `items/{user_id}/{item_id}.{ext}`
+
+## Email Notifications
+
+- **Provider**: Resend (free tier: 100 emails/day)
+- **Trigger**: Database webhook via `pg_net` triggers on `messages` and `reservations` tables
+- **Edge Function**: `send-notification` — deployed on Supabase, receives webhook payload, queries recipient details, sends email via Resend API
+- **Events**:
+  - New reservation → seller receives email with buyer name and item title
+  - New message → other conversation participant receives email with sender name and message preview
+- **Sender**: `Kinderkreisel <onboarding@resend.dev>` (Resend test domain — upgrade to custom domain later)
+- **Secret**: `RESEND_API_KEY` stored as Supabase Edge Function secret
 
 ## Reservation Expiry
 
