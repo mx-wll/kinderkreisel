@@ -266,8 +266,6 @@ export function ChatView({
             <Send className="h-4 w-4" />
           </Button>
         </form>
-        {/* Safe area padding for iOS */}
-        <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   );
