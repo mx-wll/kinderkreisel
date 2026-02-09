@@ -7,6 +7,8 @@ export type Profile = {
   phone: string;
   avatar_url: string | null;
   phone_consent: boolean;
+  email_notifications: boolean;
+  last_message_email_at: string;
   created_at: string;
   updated_at: string;
 };
