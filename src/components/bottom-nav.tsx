@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, PlusCircle, User } from "lucide-react";
+import { Home, Users, PlusCircle, MessageCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UnreadBadge } from "@/components/unread-badge";
 
 const tabs = [
   { href: "/", label: "Home", icon: Home },
   { href: "/profiles", label: "Stöbern", icon: Users },
   { href: "/items/new", label: "Einstellen", icon: PlusCircle },
+  { href: "/messages", label: "Nachrichten", icon: MessageCircle },
   { href: "/profile", label: "Profil", icon: User },
 ] as const;
 
@@ -35,9 +37,12 @@ export function BottomNav() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <tab.icon
-                className={cn("h-5 w-5", isActive && "stroke-[2.5]")}
-              />
+              <span className="relative">
+                <tab.icon
+                  className={cn("h-5 w-5", isActive && "stroke-[2.5]")}
+                />
+                {tab.href === "/messages" && <UnreadBadge />}
+              </span>
               <span className={cn(isActive && "font-medium")}>{tab.label}</span>
             </Link>
           );
