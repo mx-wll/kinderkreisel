@@ -79,3 +79,34 @@ export type ReservationWithItem = Reservation & {
     seller: Pick<Profile, "id" | "name" | "phone" | "avatar_url">;
   };
 };
+
+// Chat types
+
+export type Conversation = {
+  id: string;
+  item_id: string;
+  buyer_id: string;
+  seller_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type ConversationWithDetails = Conversation & {
+  item: Pick<Item, "id" | "title" | "image_url">;
+  other_user: Pick<Profile, "id" | "name" | "avatar_url">;
+  last_message: Pick<Message, "content" | "created_at" | "sender_id"> | null;
+  unread_count: number;
+};
+
+export type MessageWithSender = Message & {
+  sender: Pick<Profile, "id" | "name" | "avatar_url">;
+};

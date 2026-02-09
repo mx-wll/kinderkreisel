@@ -18,6 +18,7 @@ import type { ItemWithSellerDetail } from "@/lib/types/database";
 import type { Reservation } from "@/lib/types/database";
 import { ReserveButton } from "./reserve-button";
 import { CancelReservationButton } from "./cancel-reservation-button";
+import { StartChatButton } from "@/components/start-chat-button";
 
 export default async function ItemDetailPage({
   params,
@@ -243,6 +244,13 @@ export default async function ItemDetailPage({
                 vorbei!
               </p>
             </div>
+          )}
+
+          {!isOwner && user && (
+            <StartChatButton
+              itemId={id}
+              sellerId={typedItem.seller_id}
+            />
           )}
         </div>
       </div>
