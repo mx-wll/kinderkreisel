@@ -1,4 +1,4 @@
-# Kinderkreisel
+# findln
 
 Local community marketplace for giving away and finding secondhand children's items (clothing, sports equipment) in zip code 83623, Germany.
 
@@ -36,7 +36,7 @@ All project docs live in `docs/`. Read these before making changes:
 ## Project Structure
 
 ```
-kinderkreisel/
+findln/
 ├── .claude/
 │   └── commands/
 │       └── update-docs-and-commit.md
