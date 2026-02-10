@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { Profile } from "@/lib/types/database";
 
@@ -22,6 +23,7 @@ export function ProfileForm({
   const [surname, setSurname] = useState(profile.surname);
   const [residency, setResidency] = useState(profile.residency);
   const [phone, setPhone] = useState(profile.phone);
+  const [emailNotifications, setEmailNotifications] = useState(profile.email_notifications);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,6 +42,7 @@ export function ProfileForm({
           surname: surname.trim(),
           residency: residency.trim(),
           phone: phone.trim(),
+          email_notifications: emailNotifications,
         })
         .eq("id", profile.id);
 
@@ -90,6 +93,20 @@ export function ProfileForm({
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           type="tel"
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-4">
+        <div className="space-y-0.5">
+          <Label htmlFor="email-notifications">E-Mail-Benachrichtigungen</Label>
+          <p className="text-sm text-muted-foreground">
+            Erhalte E-Mails bei neuen Nachrichten und Reservierungen
+          </p>
+        </div>
+        <Switch
+          id="email-notifications"
+          checked={emailNotifications}
+          onCheckedChange={setEmailNotifications}
         />
       </div>
 
