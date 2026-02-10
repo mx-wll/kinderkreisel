@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <h2 className="text-base font-semibold">1. Verantwortlicher</h2>
           <p className="text-muted-foreground">
             Verantwortlich für die Datenverarbeitung auf dieser Plattform ist der
-            Betreiber von Kinderkreisel. Kontaktdaten findest du im{" "}
+            Betreiber von findln. Kontaktdaten findest du im{" "}
             <Link href="/impressum" className="underline">
               Impressum
             </Link>

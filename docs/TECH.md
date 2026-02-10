@@ -1,4 +1,4 @@
-# Kinderkreisel — Technical Requirements
+# findln — Technical Requirements
 
 ## Stack
 
@@ -51,7 +51,7 @@ Handled entirely by Supabase Auth:
 ## Email Notifications
 
 - **Provider**: Resend (free tier: 100 emails/day)
-- **Sender**: `Kinderkreisel <onboarding@resend.dev>` (Resend test domain — upgrade to custom domain later)
+- **Sender**: `findln <onboarding@resend.dev>` (Resend test domain — upgrade to custom domain later)
 - **Secret**: `RESEND_API_KEY` stored as Supabase Edge Function secret
 - **Opt-out**: Users can disable via `email_notifications` toggle on profile page
 

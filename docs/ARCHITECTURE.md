@@ -2,7 +2,7 @@
 
 ## Overview
 
-Kinderkreisel is a mobile-first web app built with Next.js 15 (App Router) and Supabase as the backend.
+findln is a mobile-first web app built with Next.js 15 (App Router) and Supabase as the backend.
 
 ## High-Level Architecture
 

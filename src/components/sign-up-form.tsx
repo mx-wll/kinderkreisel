@@ -101,7 +101,7 @@ export function SignUpForm({
         <CardHeader>
           <CardTitle className="text-2xl">Konto erstellen</CardTitle>
           <CardDescription>
-            Willkommen beim Kinderkreisel! Registrier dich und leg los.
+            Willkommen bei findln! Registrier dich und leg los.
           </CardDescription>
         </CardHeader>
         <CardContent>

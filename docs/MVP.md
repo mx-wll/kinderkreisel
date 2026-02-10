@@ -1,4 +1,4 @@
-# Kinderkreisel — MVP Specification
+# findln — MVP Specification
 
 The MVP delivers a functional marketplace where users can sign up, post items, browse, and reserve items for pickup.
 

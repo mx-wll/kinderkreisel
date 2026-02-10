@@ -51,7 +51,7 @@ export default async function HomePage({
     <div className="px-4 py-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Kinderkreisel</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-[family-name:var(--font-borel)]">findln</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Secondhand Kinderartikel in deiner Nachbarschaft.
           </p>

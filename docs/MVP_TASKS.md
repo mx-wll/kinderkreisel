@@ -1,6 +1,6 @@
 # MVP Build — Granular Task List
 
-This is the step-by-step build plan for the Kinderkreisel MVP. Each task is small enough to pick up independently. Check off tasks as they are completed.
+This is the step-by-step build plan for the findln MVP. Each task is small enough to pick up independently. Check off tasks as they are completed.
 
 ---
 
