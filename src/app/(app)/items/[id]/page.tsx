@@ -119,10 +119,14 @@ export default async function ItemDetailPage({
           <h1 className="text-xl font-bold leading-tight">
             {typedItem.title}
           </h1>
-          {(typedItem.category === "clothes" || typedItem.size) && (
+          {(typedItem.category !== "other" || typedItem.size || typedItem.shoe_size) && (
             <p className="mt-1 text-sm text-muted-foreground">
-              {typedItem.category === "clothes" ? "Kleidung" : "Sonstiges"}
+              {typedItem.category === "clothing" ? "Kleidung" :
+               typedItem.category === "shoes" ? "Schuhe" :
+               typedItem.category === "toys" ? "Spielzeug" :
+               typedItem.category === "outdoor_sports" ? "Draußen & Sport" : "Sonstiges"}
               {typedItem.size && ` · Größe ${typedItem.size}`}
+              {typedItem.shoe_size && ` · Größe ${typedItem.shoe_size}`}
             </p>
           )}
           <p className="mt-1 text-sm text-muted-foreground">

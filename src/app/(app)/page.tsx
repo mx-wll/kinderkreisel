@@ -8,9 +8,9 @@ import type { ItemWithSeller } from "@/lib/types/database";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; pricing?: string; category?: string; size?: string }>;
+  searchParams: Promise<{ q?: string; pricing?: string; category?: string; size?: string; shoe_size?: string }>;
 }) {
-  const { q, pricing, category, size } = await searchParams;
+  const { q, pricing, category, size, shoe_size } = await searchParams;
   const supabase = await createClient();
 
   let query = supabase
@@ -43,10 +43,14 @@ export default async function HomePage({
     query = query.eq("size", size);
   }
 
+  if (shoe_size) {
+    query = query.eq("shoe_size", shoe_size);
+  }
+
   const { data: items } = await query.order("created_at", { ascending: false });
 
   const feed = (items ?? []) as unknown as ItemWithSeller[];
-  const hasFilters = !!(q || pricing || category || size);
+  const hasFilters = !!(q || pricing || category || size || shoe_size);
 
   return (
     <PullToRefresh>

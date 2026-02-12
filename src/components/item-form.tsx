@@ -17,7 +17,7 @@ import {
 import { ImageUpload } from "@/components/image-upload";
 import { toast } from "sonner";
 import type { PricingType, Category } from "@/lib/types/database";
-import { CLOTHING_SIZES } from "@/lib/types/database";
+import { CLOTHING_SIZES, CLOTHING_SIZE_LABELS, SHOE_SIZES, CATEGORIES } from "@/lib/types/database";
 
 type ItemFormProps = {
   mode: "create" | "edit";
@@ -29,6 +29,7 @@ type ItemFormProps = {
     pricing_detail: string | null;
     category: Category;
     size: string | null;
+    shoe_size: string | null;
     image_url: string;
   };
   existingImageUrl?: string;
@@ -52,6 +53,7 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
     initialData?.category ?? "other"
   );
   const [size, setSize] = useState(initialData?.size ?? "");
+  const [shoeSize, setShoeSize] = useState(initialData?.shoe_size ?? "");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -77,8 +79,12 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
       toast.error("Die Beschreibung darf maximal 1000 Zeichen lang sein.");
       return;
     }
-    if (category === "clothes" && !size) {
+    if (category === "clothing" && !size) {
       toast.error("Bitte wähle eine Größe für Kleidung aus.");
+      return;
+    }
+    if (category === "shoes" && !shoeSize) {
+      toast.error("Bitte wähle eine Schuhgröße aus.");
       return;
     }
 
@@ -133,7 +139,8 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
             pricing_type: pricingType,
             pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
             category,
-            size: category === "clothes" ? size : null,
+            size: category === "clothing" ? size : null,
+            shoe_size: category === "shoes" ? shoeSize : null,
             image_url: storagePath,
             status: "available",
           });
@@ -178,7 +185,8 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
               pricing_type: pricingType,
               pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
               category,
-              size: category === "clothes" ? size : null,
+              size: category === "clothing" ? size : null,
+              shoe_size: category === "shoes" ? shoeSize : null,
               image_url: storagePath,
             })
             .eq("id", initialData.id);
@@ -244,20 +252,24 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
           onValueChange={(val) => {
             const next = val as Category;
             setCategory(next);
-            if (next !== "clothes") setSize("");
+            if (next !== "clothing") setSize("");
+            if (next !== "shoes") setShoeSize("");
           }}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="clothes">Kleidung</SelectItem>
-            <SelectItem value="other">Sonstiges</SelectItem>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.slug} value={c.slug}>
+                {c.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {category === "clothes" && (
+      {category === "clothing" && (
         <div className="space-y-2">
           <Label>Größe</Label>
           <Select value={size} onValueChange={setSize}>
@@ -266,6 +278,24 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
             </SelectTrigger>
             <SelectContent>
               {CLOTHING_SIZES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {CLOTHING_SIZE_LABELS[s] ?? s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {category === "shoes" && (
+        <div className="space-y-2">
+          <Label>Schuhgröße</Label>
+          <Select value={shoeSize} onValueChange={setShoeSize}>
+            <SelectTrigger>
+              <SelectValue placeholder="Schuhgröße wählen…" />
+            </SelectTrigger>
+            <SelectContent>
+              {SHOE_SIZES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
                 </SelectItem>
