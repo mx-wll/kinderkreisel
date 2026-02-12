@@ -18,7 +18,7 @@ export function ItemCard({ item }: { item: ItemWithSeller }) {
   return (
     <Link
       href={`/items/${item.id}`}
-      className="group block overflow-hidden rounded-lg border bg-card transition-colors hover:bg-accent/50"
+      className="group block overflow-hidden rounded-[4px] border bg-card transition-colors hover:bg-accent/50"
     >
       <div className="relative aspect-square overflow-hidden">
         <Image
@@ -26,7 +26,7 @@ export function ItemCard({ item }: { item: ItemWithSeller }) {
           alt={item.title}
           fill
           className="object-cover transition-transform group-hover:scale-105"
-          sizes="(max-width: 640px) 100vw, 50vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         <Badge
           variant={item.pricing_type === "free" ? "default" : "secondary"}
