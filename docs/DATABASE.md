@@ -67,6 +67,9 @@ Created automatically via a database trigger when a new user signs up in `auth.u
 | description | text | no | — | |
 | pricing_type | text | no | 'free' | One of: 'free', 'lending', 'other' |
 | pricing_detail | text | yes | null | Free text, only used when pricing_type = 'other' |
+| category | text | no | 'other' | One of: 'clothing', 'shoes', 'toys', 'outdoor_sports', 'other' |
+| size | text | yes | null | Clothing size (50–176), only when category = 'clothing' |
+| shoe_size | text | yes | null | EU shoe size (16–40), only when category = 'shoes' |
 | image_url | text | no | — | Path in Supabase Storage |
 | status | text | no | 'available' | One of: 'available', 'reserved' |
 | created_at | timestamptz | no | now() | |
@@ -229,6 +232,7 @@ Both buckets are publicly readable (images need to display without auth). Upload
 | items | seller_id | btree | Fast lookup of items by seller |
 | items | created_at | btree desc | Home feed sort order |
 | items | status | btree | Filter available items |
+| items | category | btree | Filter by category |
 | reservations | item_id, status | btree (partial: WHERE status = 'active') | Fast active reservation lookup |
 | reservations | buyer_id | btree | User's reservations |
 | profiles | id | btree (PK) | Already indexed |

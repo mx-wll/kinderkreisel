@@ -2,68 +2,84 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, X, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { CLOTHING_SIZES } from "@/lib/types/database";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  CATEGORIES,
+  CLOTHING_SIZES,
+  CLOTHING_SIZE_LABELS,
+  SHOE_SIZES,
+} from "@/lib/types/database";
+
+const PRICING_OPTIONS = [
+  { value: "free", label: "Zu verschenken" },
+  { value: "lending", label: "Zum Leihen" },
+  { value: "other", label: "Sonstiges" },
+] as const;
 
 export function SearchFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [q, setQ] = useState(searchParams.get("q") ?? "");
-  const [pricing, setPricing] = useState(searchParams.get("pricing") ?? "");
-  const [category, setCategory] = useState(searchParams.get("category") ?? "");
-  const [size, setSize] = useState(searchParams.get("size") ?? "");
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [sizeOpen, setSizeOpen] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
 
-  function buildParams(overrides: Record<string, string> = {}) {
-    const values = { q: q.trim(), pricing, category, size, ...overrides };
+  const category = searchParams.get("category") ?? "";
+  const size = searchParams.get("size") ?? "";
+  const shoeSize = searchParams.get("shoe_size") ?? "";
+  const pricing = searchParams.get("pricing") ?? "";
+
+  function navigate(overrides: Record<string, string>) {
+    const current: Record<string, string> = {
+      q: q.trim(),
+      category,
+      size,
+      shoe_size: shoeSize,
+      pricing,
+    };
+    const merged = { ...current, ...overrides };
+
+    // Clear sizes when category changes to non-sized category
+    if (overrides.category !== undefined) {
+      if (overrides.category !== "clothing") merged.size = "";
+      if (overrides.category !== "shoes") merged.shoe_size = "";
+    }
+
     const params = new URLSearchParams();
-    if (values.q) params.set("q", values.q);
-    if (values.pricing) params.set("pricing", values.pricing);
-    if (values.category) params.set("category", values.category);
-    if (values.size && values.category === "clothes") params.set("size", values.size);
-    return params;
-  }
-
-  function navigate(overrides: Record<string, string> = {}) {
-    const qs = buildParams(overrides).toString();
+    for (const [key, value] of Object.entries(merged)) {
+      if (value) params.set(key, value);
+    }
+    const qs = params.toString();
     router.push(qs ? `/?${qs}` : "/");
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    navigate();
+    navigate({ q: q.trim() });
   }
 
-  function handlePricingChange(value: string) {
-    const next = value === "all" ? "" : value;
-    setPricing(next);
-    navigate({ pricing: next });
-  }
-
-  function handleCategoryChange(value: string) {
-    const next = value === "all" ? "" : value;
-    setCategory(next);
-    if (next !== "clothes") setSize("");
-    navigate({ category: next, size: next === "clothes" ? size : "" });
-  }
-
-  function handleSizeChange(value: string) {
-    const next = value === "all" ? "" : value;
-    setSize(next);
-    navigate({ size: next });
-  }
+  const categoryLabel = CATEGORIES.find((c) => c.slug === category)?.label;
+  const showSizeChip = category === "clothing" || category === "shoes";
+  const activeSizeValue = category === "clothing" ? size : shoeSize;
+  const sizeOptions =
+    category === "clothing"
+      ? CLOTHING_SIZES.map((s) => ({ value: s, label: CLOTHING_SIZE_LABELS[s] ?? s }))
+      : category === "shoes"
+        ? SHOE_SIZES.map((s) => ({ value: s, label: s }))
+        : [];
+  const sizeParamKey = category === "clothing" ? "size" : "shoe_size";
+  const pricingLabel = PRICING_OPTIONS.find((p) => p.value === pricing)?.label;
 
   return (
-    <div className="mt-4 space-y-2">
+    <div className="mt-4 space-y-3">
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -78,43 +94,145 @@ export function SearchFilter() {
           <Search className="h-4 w-4" />
         </Button>
       </form>
-      <div className="flex gap-2">
-        <Select value={category || "all"} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle Kategorien</SelectItem>
-            <SelectItem value="clothes">Kleidung</SelectItem>
-            <SelectItem value="other">Sonstiges</SelectItem>
-          </SelectContent>
-        </Select>
-        {category === "clothes" && (
-          <Select value={size || "all"} onValueChange={handleSizeChange}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alle Größen</SelectItem>
-              {CLOTHING_SIZES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  Gr. {s}
-                </SelectItem>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-none">
+        {/* Category chip */}
+        <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                category
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-accent"
+              }`}
+            >
+              {categoryLabel ?? "Alle Kategorien"}
+              {category ? (
+                <X
+                  className="h-3.5 w-3.5 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate({ category: "", size: "", shoe_size: "" });
+                  }}
+                />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-48 p-1">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.slug}
+                type="button"
+                className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+                  category === c.slug ? "bg-accent font-medium" : ""
+                }`}
+                onClick={() => {
+                  navigate({ category: c.slug });
+                  setCategoryOpen(false);
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
+        {/* Size chip — only for clothing or shoes */}
+        {showSizeChip && (
+          <Popover open={sizeOpen} onOpenChange={setSizeOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  activeSizeValue
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background hover:bg-accent"
+                }`}
+              >
+                {activeSizeValue
+                  ? category === "clothing"
+                    ? `Gr. ${activeSizeValue}`
+                    : `Gr. ${activeSizeValue}`
+                  : "Größe"}
+                {activeSizeValue ? (
+                  <X
+                    className="h-3.5 w-3.5 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate({ [sizeParamKey]: "" });
+                    }}
+                  />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="max-h-64 w-48 overflow-y-auto p-1">
+              {sizeOptions.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+                    activeSizeValue === s.value ? "bg-accent font-medium" : ""
+                  }`}
+                  onClick={() => {
+                    navigate({ [sizeParamKey]: s.value });
+                    setSizeOpen(false);
+                  }}
+                >
+                  {s.label}
+                </button>
               ))}
-            </SelectContent>
-          </Select>
+            </PopoverContent>
+          </Popover>
         )}
-        <Select value={pricing || "all"} onValueChange={handlePricingChange}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Alle Preise</SelectItem>
-            <SelectItem value="free">Zu verschenken</SelectItem>
-            <SelectItem value="lending">Zum Leihen</SelectItem>
-            <SelectItem value="other">Sonstiges</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Pricing chip */}
+        <Popover open={pricingOpen} onOpenChange={setPricingOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                pricing
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background hover:bg-accent"
+              }`}
+            >
+              {pricingLabel ?? "Preis"}
+              {pricing ? (
+                <X
+                  className="h-3.5 w-3.5 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate({ pricing: "" });
+                  }}
+                />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-48 p-1">
+            {PRICING_OPTIONS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+                  pricing === p.value ? "bg-accent font-medium" : ""
+                }`}
+                onClick={() => {
+                  navigate({ pricing: p.value });
+                  setPricingOpen(false);
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );

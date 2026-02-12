@@ -1,74 +1,77 @@
-# findln — Search & Filter Feature (Option 2a)
+# findln — Search & Filter Feature
 
-Adds text search and pricing filter to the home page using server-side Supabase `.ilike()` queries with URL search params. No database migrations required.
+Text search and multi-filter browse on the home page using server-side Supabase queries with URL search params.
 
 ## Overview
 
 | Aspect | Detail |
 |--------|--------|
 | Approach | Server-side filtering via Supabase `.ilike()` + `.eq()` |
-| Location | Existing home page (`/`) |
-| State management | URL search params (`?q=...&pricing=...`) |
-| DB changes | None |
-| New dependencies | None |
+| Location | Home page (`/`) |
+| State management | URL search params (`?q=...&category=...&size=...&shoe_size=...&pricing=...`) |
+| Filter UI | Horizontal chip-based popovers (shadcn Popover) |
 
-## Tasks
+## Categories
 
-### 1. Create `SearchFilter` client component
+| Slug | German Label | Has Sizes | Notes |
+|------|-------------|-----------|-------|
+| `clothing` | Kleidung | Yes (50–176) | Clothing sizes with age labels in UI |
+| `shoes` | Schuhe | Yes (16–40) | EU kids shoe sizes |
+| `toys` | Spielzeug | No | |
+| `outdoor_sports` | Draußen & Sport | No | Bikes, skiing, ball sports |
+| `other` | Sonstiges | No | Catch-all |
 
-- **File**: `src/components/search-filter.tsx`
-- **Type**: Client component (`"use client"`)
-- **Contains**:
-  - Text input for search (placeholder: `"Artikel suchen..."`)
-  - Select dropdown for pricing type filter with options:
-    - `""` — Alle (all / default)
-    - `"free"` — Zu verschenken
-    - `"lending"` — Zum Leihen
-    - `"other"` — Sonstiges
-- **Behavior**:
-  - On form submit (Enter key or button), updates URL search params `?q=<text>&pricing=<type>`
-  - Uses `useRouter` + `useSearchParams` from `next/navigation`
-  - Preserves existing param values on load (controlled inputs from URL)
-  - Debounce is NOT needed — search triggers on explicit submit (Enter / button)
-  - Clearing the input and submitting removes the `q` param
-  - Selecting "Alle" removes the `pricing` param
-- **UI**: Uses existing shadcn `Input`, `Select`, and `Button` components
-- **Layout**: Search input and filter in a single responsive row below the page header
+## Filter Chips
 
-### 2. Update home page to read search params and filter query
+The filter row below the search bar uses horizontal scrollable chips:
 
-- **File**: `src/app/(app)/page.tsx`
-- **Changes**:
-  - Accept `searchParams` prop (Next.js server component convention)
-  - Read `q` and `pricing` from search params
-  - Build Supabase query conditionally:
-    - If `q` is present: add `.or('title.ilike.%${q}%,description.ilike.%${q}%')`
-    - If `pricing` is present: add `.eq('pricing_type', pricing)`
-  - Render `<SearchFilter />` component between header and item grid
-  - Show "Keine Ergebnisse" empty state when search/filter returns 0 results (distinct from "no items exist" state)
+```
+[Alle Kategorien ▾] [Größe ▾] [Preis ▾]
+```
 
-### 3. Update empty state messaging
+- Each chip opens a **Popover** with selectable options
+- Active filter: chip is filled/highlighted with primary color, shows value + × to clear
+- **Size chip** only appears when category is `clothing` or `shoes`
+  - Clothing sizes show age labels (e.g., "92 (ca. 2 J.)")
+  - Shoe sizes show simple EU numbers (16–40)
+- Chips update URL params and navigate immediately on selection
 
-- No items at all (no search active): `"Noch keine Artikel vorhanden."` (existing)
-- No results for search/filter: `"Keine Artikel gefunden. Versuch es mit einem anderen Suchbegriff."` (new)
+## URL Parameters
 
-## Out of Scope
+| Param | Values | Notes |
+|-------|--------|-------|
+| `q` | Free text | Searches title and description via `.ilike()` |
+| `category` | `clothing`, `shoes`, `toys`, `outdoor_sports`, `other` | |
+| `size` | `50`–`176` | Only when category = `clothing` |
+| `shoe_size` | `16`–`40` | Only when category = `shoes` |
+| `pricing` | `free`, `lending`, `other` | |
 
-- Full-text search (`tsvector`/`tsquery`) — future upgrade
-- Category / item type filter — requires DB schema change
-- Child age filter — requires DB schema change
-- Dedicated `/items` browse page — future Option 3
-- Debounced live search — not needed for explicit submit UX
-- Search result ranking / relevance scoring
+## Components
+
+### `SearchFilter` (`src/components/search-filter.tsx`)
+
+- Client component (`"use client"`)
+- Search input + chip row
+- Uses `useRouter` + `useSearchParams`
+- Chips use shadcn `Popover` / `PopoverTrigger` / `PopoverContent`
+
+### Home Page (`src/app/(app)/page.tsx`)
+
+- Reads all search params from URL
+- Builds Supabase query with conditional `.eq()` filters
+- Shows empty state with helpful German message when no results
 
 ## Acceptance Criteria
 
-- [ ] User can type a search term and press Enter to filter items by title or description
-- [ ] User can select a pricing type to filter items
-- [ ] Search and filter can be combined
-- [ ] URL reflects current search state (shareable, back-button works)
-- [ ] Clearing search/filter shows all items again
-- [ ] Empty search results show a helpful German message
-- [ ] No database migration needed
-- [ ] All UI copy is in German
-- [ ] Uses existing shadcn/ui components only
+- [x] User can type a search term and press Enter to filter items
+- [x] User can filter by category (5 options)
+- [x] Size filter appears only for clothing and shoes categories
+- [x] Clothing sizes show age labels
+- [x] User can filter by pricing type
+- [x] All filters can be combined
+- [x] URL reflects current search state (shareable, back-button works)
+- [x] Active chips show selected value + × to clear
+- [x] Clearing all filters shows all items again
+- [x] Empty search results show a helpful German message
+- [x] Mobile: chips scroll horizontally
+- [x] All UI copy is in German

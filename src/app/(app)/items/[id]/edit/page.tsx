@@ -45,6 +45,7 @@ export default async function EditItemPage({
             pricing_detail: item.pricing_detail,
             category: (item.category as Category) ?? "other",
             size: item.size ?? null,
+            shoe_size: item.shoe_size ?? null,
             image_url: item.image_url,
           }}
           existingImageUrl={getStorageUrl("items", item.image_url)}
