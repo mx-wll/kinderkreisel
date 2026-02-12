@@ -28,7 +28,6 @@ export function SearchFilter() {
   const searchParams = useSearchParams();
 
   const [q, setQ] = useState(searchParams.get("q") ?? "");
-  const [categoryOpen, setCategoryOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
 
@@ -47,7 +46,6 @@ export function SearchFilter() {
     };
     const merged = { ...current, ...overrides };
 
-    // Clear sizes when category changes to non-sized category
     if (overrides.category !== undefined) {
       if (overrides.category !== "clothing") merged.size = "";
       if (overrides.category !== "shoes") merged.shoe_size = "";
@@ -66,7 +64,6 @@ export function SearchFilter() {
     navigate({ q: q.trim() });
   }
 
-  const categoryLabel = CATEGORIES.find((c) => c.slug === category)?.label;
   const showSizeChip = category === "clothing" || category === "shoes";
   const activeSizeValue = category === "clothing" ? size : shoeSize;
   const sizeOptions =
@@ -95,74 +92,100 @@ export function SearchFilter() {
         </Button>
       </form>
 
+      {/* Category buttons — always visible */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-none">
-        {/* Category chip */}
-        <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                category
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:bg-accent"
-              }`}
-            >
-              {categoryLabel ?? "Alle Kategorien"}
-              {category ? (
-                <X
-                  className="h-3.5 w-3.5 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate({ category: "", size: "", shoe_size: "" });
-                  }}
-                />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-48 p-1">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.slug}
-                type="button"
-                className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
-                  category === c.slug ? "bg-accent font-medium" : ""
-                }`}
-                onClick={() => {
-                  navigate({ category: c.slug });
-                  setCategoryOpen(false);
-                }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
+        <button
+          type="button"
+          onClick={() => navigate({ category: "" })}
+          className={`shrink-0 rounded-lg border-2 px-4 py-2 text-sm font-medium transition-colors ${
+            !category
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+          }`}
+        >
+          Alle
+        </button>
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.slug}
+            type="button"
+            onClick={() => navigate({ category: c.slug })}
+            className={`shrink-0 rounded-lg border-2 px-4 py-2 text-sm font-medium transition-colors ${
+              category === c.slug
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Size chip — only for clothing or shoes */}
-        {showSizeChip && (
-          <Popover open={sizeOpen} onOpenChange={setSizeOpen}>
+      {/* Secondary filters — size + pricing chips */}
+      {(showSizeChip || pricing) && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-none">
+          {showSizeChip && (
+            <Popover open={sizeOpen} onOpenChange={setSizeOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    activeSizeValue
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background hover:bg-accent"
+                  }`}
+                >
+                  {activeSizeValue ? `Gr. ${activeSizeValue}` : "Größe"}
+                  {activeSizeValue ? (
+                    <X
+                      className="h-3.5 w-3.5 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate({ [sizeParamKey]: "" });
+                      }}
+                    />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="max-h-64 w-48 overflow-y-auto p-1">
+                {sizeOptions.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+                      activeSizeValue === s.value ? "bg-accent font-medium" : ""
+                    }`}
+                    onClick={() => {
+                      navigate({ [sizeParamKey]: s.value });
+                      setSizeOpen(false);
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <Popover open={pricingOpen} onOpenChange={setPricingOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  activeSizeValue
+                  pricing
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:bg-accent"
                 }`}
               >
-                {activeSizeValue
-                  ? category === "clothing"
-                    ? `Gr. ${activeSizeValue}`
-                    : `Gr. ${activeSizeValue}`
-                  : "Größe"}
-                {activeSizeValue ? (
+                {pricingLabel ?? "Preis"}
+                {pricing ? (
                   <X
                     className="h-3.5 w-3.5 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate({ [sizeParamKey]: "" });
+                      navigate({ pricing: "" });
                     }}
                   />
                 ) : (
@@ -170,70 +193,26 @@ export function SearchFilter() {
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="max-h-64 w-48 overflow-y-auto p-1">
-              {sizeOptions.map((s) => (
+            <PopoverContent align="start" className="w-48 p-1">
+              {PRICING_OPTIONS.map((p) => (
                 <button
-                  key={s.value}
+                  key={p.value}
                   type="button"
                   className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
-                    activeSizeValue === s.value ? "bg-accent font-medium" : ""
+                    pricing === p.value ? "bg-accent font-medium" : ""
                   }`}
                   onClick={() => {
-                    navigate({ [sizeParamKey]: s.value });
-                    setSizeOpen(false);
+                    navigate({ pricing: p.value });
+                    setPricingOpen(false);
                   }}
                 >
-                  {s.label}
+                  {p.label}
                 </button>
               ))}
             </PopoverContent>
           </Popover>
-        )}
-
-        {/* Pricing chip */}
-        <Popover open={pricingOpen} onOpenChange={setPricingOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                pricing
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background hover:bg-accent"
-              }`}
-            >
-              {pricingLabel ?? "Preis"}
-              {pricing ? (
-                <X
-                  className="h-3.5 w-3.5 cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate({ pricing: "" });
-                  }}
-                />
-              ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-48 p-1">
-            {PRICING_OPTIONS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                className={`w-full rounded-sm px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
-                  pricing === p.value ? "bg-accent font-medium" : ""
-                }`}
-                onClick={() => {
-                  navigate({ pricing: p.value });
-                  setPricingOpen(false);
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

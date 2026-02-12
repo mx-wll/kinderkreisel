@@ -245,28 +245,28 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
         </p>
       </div>
 
-      <div className="space-y-3">
-        <Label>Was ist es?</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              onClick={() => {
-                setCategory(c.slug);
-                if (c.slug !== "clothing") setSize("");
-                if (c.slug !== "shoes") setShoeSize("");
-              }}
-              className={`rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                category === c.slug
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
+      <div className="space-y-2">
+        <Label>Kategorie</Label>
+        <Select
+          value={category}
+          onValueChange={(val) => {
+            const next = val as Category;
+            setCategory(next);
+            if (next !== "clothing") setSize("");
+            if (next !== "shoes") setShoeSize("");
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c.slug} value={c.slug}>
+                {c.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {category === "clothing" && (
