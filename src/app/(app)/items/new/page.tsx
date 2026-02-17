@@ -1,20 +1,15 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { ItemForm } from "@/components/item-form";
+import { convexQuery } from "@/lib/convex/server";
+import { getCurrentSession } from "@/lib/auth/server";
 
 export default async function NewItemPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await getCurrentSession();
+  if (!session) return null;
 
   // Check item count for 20-item limit
-  const { count } = await supabase
-    .from("items")
-    .select("*", { count: "exact", head: true })
-    .eq("seller_id", user!.id);
+  const count = await convexQuery<number>("items:countBySeller", { sellerId: session.profileId });
 
   const atLimit = count !== null && count >= 20;
 

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-02-17
+
+### Added
+- [convex] Convex project integration and deployment wiring (`convex/` schema, functions, cron definitions, generated API/types)
+- [convex] Data migration tooling for Supabase->Convex data import with clear/import/count workflow
+- [convex] Execution checklist and migration plan docs (`docs/CONVEX_MIGRATION_EXECUTION_CHECKLIST.md`, `docs/CONVEX_MIGRATION_PLAN.md`)
+- [convex] App provider + Convex utilities (`src/components/convex-provider.tsx`, `src/lib/convex/server.ts`, `src/lib/convex/client.ts`)
+- [auth] App-managed auth API routes + signed cookie sessions (`/api/auth/*`)
+- [auth] One-time legacy account claim flow (`/claim-account`) gated by `ENABLE_ACCOUNT_CLAIM=true`
+
+### Changed
+- [data] Migrated production app data from Supabase Postgres to Convex and verified row counts match for profiles/items/reservations/conversations/messages
+- [routes] Switched core read paths to Convex for `/`, `/profiles`, `/profiles/[id]`, `/items/[id]`, `/messages`, `/messages/[id]`, `/profile`
+- [mutations] Switched write paths to Convex for reserve/cancel reservation, start chat, item create/edit/delete, profile update/avatar update, and account data cleanup
+- [realtime] Switched chat message stream and unread badge to Convex subscriptions
+- [storage] Migrated legacy item/avatar assets from Supabase public buckets to Convex Storage and switched new uploads to Convex Storage
+- [cleanup] Removed Supabase runtime dependencies and middleware; removed Supabase env usage from runtime
+
+### Pending
+- [migration] Full E2E verification sweep after Node runtime upgrade to >= 20.9
+
 ## 2026-02-09
 
 ### Added

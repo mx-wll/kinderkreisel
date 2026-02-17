@@ -6,8 +6,9 @@ import imageCompression from "browser-image-compression";
 import { Camera, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { convexClientMutation } from "@/lib/convex/client";
+import { uploadFileToConvex } from "@/lib/storage/client";
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.2,
@@ -42,27 +43,14 @@ export function AvatarUpload({
     startTransition(async () => {
       try {
         const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `${userId}/avatar.${ext}`;
-        const supabase = createClient();
-
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(path, compressed, { upsert: true });
-
-        if (uploadError) {
-          toast.error("Upload fehlgeschlagen. Bitte versuche es erneut.");
-          return;
-        }
-
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ avatar_url: path })
-          .eq("id", userId);
-
-        if (updateError) {
-          toast.error("Profil konnte nicht aktualisiert werden.");
-          return;
+        const uploaded = await uploadFileToConvex(compressed as File);
+        const result = await convexClientMutation<{ oldAvatarStorageId?: string }>("profiles:update", {
+          id: userId,
+          avatarUrl: uploaded.url,
+          avatarStorageId: uploaded.storageId,
+        });
+        if (result.oldAvatarStorageId && result.oldAvatarStorageId !== uploaded.storageId) {
+          await convexClientMutation("files:deleteFile", { storageId: result.oldAvatarStorageId });
         }
 
         toast.success("Profilbild aktualisiert!");
@@ -77,18 +65,16 @@ export function AvatarUpload({
 
   function handleRemove() {
     startTransition(async () => {
-      const supabase = createClient();
-
-      if (currentAvatarUrl) {
-        await supabase.storage.from("avatars").remove([currentAvatarUrl]);
-      }
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ avatar_url: null })
-        .eq("id", userId);
-
-      if (error) {
+      try {
+        const result = await convexClientMutation<{ oldAvatarStorageId?: string }>("profiles:update", {
+          id: userId,
+          avatarUrl: null,
+          avatarStorageId: null,
+        });
+        if (result.oldAvatarStorageId) {
+          await convexClientMutation("files:deleteFile", { storageId: result.oldAvatarStorageId });
+        }
+      } catch {
         toast.error("Profilbild konnte nicht entfernt werden.");
         return;
       }
@@ -110,10 +96,7 @@ export function AvatarUpload({
 
       <Avatar className="h-20 w-20">
         {currentAvatarUrl && (
-          <AvatarImage
-            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${currentAvatarUrl}`}
-            alt={name}
-          />
+          <AvatarImage src={currentAvatarUrl} alt={name} />
         )}
         <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
       </Avatar>

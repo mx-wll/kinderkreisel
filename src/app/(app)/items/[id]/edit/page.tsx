@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getStorageUrl } from "@/lib/utils";
 import { ItemForm } from "@/components/item-form";
 import type { PricingType, Category } from "@/lib/types/database";
+import { convexQuery } from "@/lib/convex/server";
+import { getCurrentSession } from "@/lib/auth/server";
 
 export default async function EditItemPage({
   params,
@@ -10,22 +11,26 @@ export default async function EditItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const session = await getCurrentSession();
+  if (!session) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: item } = await supabase
-    .from("items")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const item = await convexQuery<{
+    id: string;
+    sellerId: string;
+    title: string;
+    description: string;
+    pricingType: PricingType;
+    pricingDetail?: string;
+    category: Category;
+    size?: string;
+    shoeSize?: string;
+    imageUrl: string;
+  } | null>("items:getById", { id });
 
   if (!item) notFound();
 
   // Only the seller can edit
-  if (item.seller_id !== user?.id) redirect(`/items/${id}`);
+  if (item.sellerId !== session.profileId) redirect(`/items/${id}`);
 
   return (
     <div className="px-4 py-6">
@@ -41,14 +46,14 @@ export default async function EditItemPage({
             id: item.id,
             title: item.title,
             description: item.description,
-            pricing_type: item.pricing_type as PricingType,
-            pricing_detail: item.pricing_detail,
+            pricing_type: item.pricingType as PricingType,
+            pricing_detail: item.pricingDetail ?? null,
             category: (item.category as Category) ?? "other",
             size: item.size ?? null,
-            shoe_size: item.shoe_size ?? null,
-            image_url: item.image_url,
+            shoe_size: item.shoeSize ?? null,
+            image_url: item.imageUrl,
           }}
-          existingImageUrl={getStorageUrl("items", item.image_url)}
+          existingImageUrl={getStorageUrl("items", item.imageUrl)}
         />
       </div>
     </div>

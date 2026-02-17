@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,35 +57,34 @@ export function SignUpForm({
       return;
     }
 
-    const supabase = createClient();
-
     try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent("/login?verified=1")}`,
-          data: {
-            name: formData.name,
-            surname: formData.surname,
-            residency: formData.residency,
-            zip_code: "83623",
-            phone: formData.phone,
-            phone_consent: phoneConsent,
-          },
-        },
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          surname: formData.surname,
+          residency: formData.residency,
+          phone: formData.phone,
+          phoneConsent,
+        }),
       });
-      if (error) throw error;
-      router.push("/signup-success");
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || "Registrierung fehlgeschlagen.");
+      }
+      const body = (await response.json().catch(() => ({}))) as { autoVerified?: boolean };
+      if (body.autoVerified) {
+        router.push("/login?verified=1");
+      } else {
+        router.push("/signup-success");
+      }
+      router.refresh();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if (error.message.includes("already registered")) {
-          setError(
-            "Diese E-Mail-Adresse ist bereits registriert. Versuch dich einzuloggen!"
-          );
-        } else {
-          setError(error.message);
-        }
+        setError(error.message);
       } else {
         setError("Ein unbekannter Fehler ist aufgetreten.");
       }
