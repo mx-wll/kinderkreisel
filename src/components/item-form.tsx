@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,8 @@ import { ImageUpload } from "@/components/image-upload";
 import { toast } from "sonner";
 import type { PricingType, Category } from "@/lib/types/database";
 import { CLOTHING_SIZES, CLOTHING_SIZE_LABELS, SHOE_SIZES, CATEGORIES } from "@/lib/types/database";
+import { convexClientMutation, convexClientQuery } from "@/lib/convex/client";
+import { uploadFileToConvex } from "@/lib/storage/client";
 
 type ItemFormProps = {
   mode: "create" | "edit";
@@ -89,24 +90,18 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
     }
 
     startTransition(async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
+      const me = (await fetch("/api/auth/me").then((r) => r.json())) as { user: { id: string } | null };
+      if (!me.user) {
         toast.error("Du bist nicht angemeldet.");
         router.push("/login");
         return;
       }
+      const userId = me.user.id;
 
       try {
         if (mode === "create") {
           // Check 20-item limit
-          const { count } = await supabase
-            .from("items")
-            .select("*", { count: "exact", head: true })
-            .eq("seller_id", user.id);
+          const count = await convexClientQuery<number>("items:countBySeller", { sellerId: userId });
 
           if (count !== null && count >= 20) {
             toast.error(
@@ -117,81 +112,52 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
 
           // Generate item ID for storage path
           const itemId = crypto.randomUUID();
-          const ext = imageFile!.name.split(".").pop() || "jpg";
-          const storagePath = `${user.id}/${itemId}.${ext}`;
-
-          // Upload image
-          const { error: uploadError } = await supabase.storage
-            .from("items")
-            .upload(storagePath, imageFile!);
-
-          if (uploadError) {
-            toast.error("Bild-Upload fehlgeschlagen. Bitte versuche es erneut.");
-            return;
-          }
-
-          // Insert item
-          const { error: insertError } = await supabase.from("items").insert({
+          const uploaded = await uploadFileToConvex(imageFile!);
+          await convexClientMutation("items:create", {
             id: itemId,
-            seller_id: user.id,
+            sellerId: userId,
             title: title.trim(),
             description: description.trim(),
-            pricing_type: pricingType,
-            pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
+            pricingType,
+            pricingDetail: pricingType === "other" ? pricingDetail.trim() || undefined : undefined,
             category,
-            size: category === "clothing" ? size : null,
-            shoe_size: category === "shoes" ? shoeSize : null,
-            image_url: storagePath,
-            status: "available",
+            size: category === "clothing" ? size : undefined,
+            shoeSize: category === "shoes" ? shoeSize : undefined,
+            imageUrl: uploaded.url,
+            imageStorageId: uploaded.storageId,
           });
-
-          if (insertError) {
-            // Clean up uploaded image
-            await supabase.storage.from("items").remove([storagePath]);
-            toast.error("Artikel konnte nicht erstellt werden. Bitte versuche es erneut.");
-            return;
-          }
 
           toast.success("Artikel erfolgreich eingestellt!");
           router.push(`/items/${itemId}`);
         } else if (mode === "edit" && initialData) {
-          let storagePath = initialData.image_url;
+          let imageUrl = initialData.image_url;
+          let imageStorageId: string | undefined;
 
           // Upload new image if changed
           if (imageFile) {
-            const ext = imageFile.name.split(".").pop() || "jpg";
-            storagePath = `${user.id}/${initialData.id}.${ext}`;
-
-            // Remove old image first
-            await supabase.storage
-              .from("items")
-              .remove([initialData.image_url]);
-
-            const { error: uploadError } = await supabase.storage
-              .from("items")
-              .upload(storagePath, imageFile, { upsert: true });
-
-            if (uploadError) {
-              toast.error("Bild-Upload fehlgeschlagen. Bitte versuche es erneut.");
-              return;
-            }
+            const uploaded = await uploadFileToConvex(imageFile);
+            imageUrl = uploaded.url;
+            imageStorageId = uploaded.storageId;
           }
 
-          const { error: updateError } = await supabase
-            .from("items")
-            .update({
+          try {
+            const result = await convexClientMutation<{ oldStorageId?: string }>("items:update", {
+              id: initialData.id,
+              actorId: userId,
               title: title.trim(),
               description: description.trim(),
-              pricing_type: pricingType,
-              pricing_detail: pricingType === "other" ? pricingDetail.trim() || null : null,
+              pricingType,
+              pricingDetail: pricingType === "other" ? pricingDetail.trim() || undefined : undefined,
               category,
-              size: category === "clothing" ? size : null,
-              shoe_size: category === "shoes" ? shoeSize : null,
-              image_url: storagePath,
-            })
-            .eq("id", initialData.id);
-
-          if (updateError) {
+              size: category === "clothing" ? size : undefined,
+              shoeSize: category === "shoes" ? shoeSize : undefined,
+              imageUrl,
+              imageStorageId,
+            });
+            if (imageStorageId && result.oldStorageId && result.oldStorageId !== imageStorageId) {
+              await convexClientMutation("files:deleteFile", { storageId: result.oldStorageId });
+            }
+          } catch {
             toast.error("Artikel konnte nicht aktualisiert werden. Bitte versuche es erneut.");
             return;
           }

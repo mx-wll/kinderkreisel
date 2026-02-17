@@ -6,10 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Build a public URL for a file in Supabase Storage.
+ * Normalize storage URLs for migrated and new records.
  */
 export function getStorageUrl(bucket: string, path: string): string {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
+  void bucket
+  if (!path) return ""
+  if (path.startsWith("http://") || path.startsWith("https://")) return path
+  if (path.startsWith("/")) return path
+  return path
 }
 
 /**

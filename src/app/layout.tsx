@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Borel } from "next/font/google";
+import { ConvexAppProvider } from "@/components/convex-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -37,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={`${geistSans.variable} ${borel.variable} font-sans antialiased`}>
-        {children}
+        <ConvexAppProvider>{children}</ConvexAppProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

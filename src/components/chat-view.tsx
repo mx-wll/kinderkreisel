@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Send } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,12 +37,27 @@ export function ChatView({
   item: ChatItem;
   otherUser: ChatUser;
 }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const supabase = createClient();
+  const convexMessages = useQuery(
+    api.chat.getMessages,
+    { conversationId }
+  );
+  const sendConvexMessage = useMutation(api.chat.sendMessage);
+  const markConversationRead = useMutation(api.chat.markConversationRead);
+  const messages: Message[] = useMemo(() => {
+    if (!convexMessages) return initialMessages;
+    return convexMessages.map((msg) => ({
+      id: msg.id,
+      conversation_id: msg.conversationId,
+      sender_id: msg.senderId,
+      content: msg.content,
+      read_at: msg.readAt ? new Date(msg.readAt).toISOString() : null,
+      created_at: new Date(msg.createdAt).toISOString(),
+    }));
+  }, [convexMessages, initialMessages]);
 
   // Auto-scroll to bottom
   function scrollToBottom() {
@@ -56,52 +72,10 @@ export function ChatView({
 
   // Mark unread messages as read
   useEffect(() => {
-    const unreadIds = messages
-      .filter((m) => m.sender_id !== currentUserId && !m.read_at)
-      .map((m) => m.id);
-
-    if (unreadIds.length === 0) return;
-
-    supabase
-      .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", unreadIds)
-      .then(() => {
-        setMessages((prev) =>
-          prev.map((m) =>
-            unreadIds.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m
-          )
-        );
-      });
-  }, [messages, currentUserId, supabase]);
-
-  // Real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => {
-            // Avoid duplicates (optimistic update already added it)
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, supabase]);
+    const hasUnread = messages.some((m) => m.sender_id !== currentUserId && !m.read_at);
+    if (!hasUnread) return;
+    markConversationRead({ conversationId, userId: currentUserId }).catch(() => {});
+  }, [messages, currentUserId, markConversationRead, conversationId]);
 
   async function handleSend() {
     const content = input.trim();
@@ -110,38 +84,14 @@ export function ChatView({
     setSending(true);
     setInput("");
 
-    // Optimistic message
-    const optimisticMsg: Message = {
-      id: crypto.randomUUID(),
-      conversation_id: conversationId,
-      sender_id: currentUserId,
-      content,
-      read_at: null,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticMsg]);
-
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversationId,
-        sender_id: currentUserId,
+    try {
+      await sendConvexMessage({
+        conversationId,
+        senderId: currentUserId,
         content,
-      })
-      .select("id")
-      .single();
-
-    if (error) {
-      // Remove optimistic message on failure
-      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      });
+    } catch {
       setInput(content);
-    } else {
-      // Replace optimistic ID with real DB ID so real-time dedup works
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === optimisticMsg.id ? { ...m, id: data.id } : m
-        )
-      );
     }
 
     setSending(false);

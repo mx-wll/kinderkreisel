@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PlusCircle, Clock, Phone, MessageCircle, Pencil, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,75 +21,188 @@ import type {
   Item,
   Reservation,
 } from "@/lib/types/database";
+import { convexQuery } from "@/lib/convex/server";
+import { getCurrentSession } from "@/lib/auth/server";
 
 type ItemWithReservation = Item & {
   reservations: Reservation[];
 };
 
 export default async function MyProfilePage() {
-  const supabase = await createClient();
+  const session = await getCurrentSession();
+  if (!session) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Fetch profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single();
-
-  // Fetch own items with their active reservations
-  const { data: items } = await supabase
-    .from("items")
-    .select(
-      `
-      *,
-      reservations (
-        id,
-        buyer_id,
-        status,
-        created_at,
-        expires_at
-      )
-    `
-    )
-    .eq("seller_id", user!.id)
-    .order("created_at", { ascending: false });
-
-  // Fetch reservations where user is buyer
-  const { data: myReservations } = await supabase
-    .from("reservations")
-    .select(
-      `
-      *,
-      item:items (
-        id,
-        title,
-        image_url,
-        seller:profiles!seller_id (
-          id,
-          name,
-          phone,
-          avatar_url
-        )
-      )
-    `
-    )
-    .eq("buyer_id", user!.id)
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
-
-  const typedProfile = profile as Profile | null;
-  const typedItems = (items ?? []) as unknown as ItemWithReservation[];
-  const typedReservations = myReservations as unknown as Array<
+  let typedProfile: Profile | null = null;
+  let typedItems: ItemWithReservation[] = [];
+  let typedReservations: Array<
     Reservation & {
       item: Item & {
         seller: { id: string; name: string; phone: string; avatar_url: string | null };
       };
     }
-  > ?? [];
+  > = [];
+
+  {
+    const profile = await convexQuery<{
+      id: string;
+      name: string;
+      surname: string;
+      residency: string;
+      zipCode: string;
+      phone: string;
+      avatarUrl?: string;
+      phoneConsent: boolean;
+      emailNotifications: boolean;
+      lastMessageEmailAt: number;
+      createdAt: number;
+      updatedAt: number;
+    } | null>("profiles:getById", { id: session.profileId });
+
+    typedProfile = profile
+      ? {
+          id: profile.id,
+          name: profile.name,
+          surname: profile.surname,
+          residency: profile.residency,
+          zip_code: profile.zipCode,
+          phone: profile.phone,
+          avatar_url: profile.avatarUrl ?? null,
+          phone_consent: profile.phoneConsent,
+          email_notifications: profile.emailNotifications,
+          last_message_email_at: new Date(profile.lastMessageEmailAt).toISOString(),
+          created_at: new Date(profile.createdAt).toISOString(),
+          updated_at: new Date(profile.updatedAt).toISOString(),
+        }
+      : null;
+
+    const [items, myReservations] = await Promise.all([
+      convexQuery<
+        Array<{
+          id: string;
+          sellerId: string;
+          title: string;
+          description: string;
+          pricingType: "free" | "lending" | "other";
+          pricingDetail?: string;
+          category: "clothing" | "shoes" | "toys" | "outdoor_sports" | "other";
+          size?: string;
+          shoeSize?: string;
+          imageUrl: string;
+          status: "available" | "reserved";
+          createdAt: number;
+          updatedAt: number;
+        }>
+      >("items:listBySeller", { sellerId: session.profileId }),
+      convexQuery<
+        Array<{
+          id: string;
+          itemId: string;
+          buyerId: string;
+          status: "active" | "expired" | "cancelled";
+          createdAt: number;
+          expiresAt: number;
+        }>
+      >("reservations:listActiveByBuyer", { buyerId: session.profileId }),
+    ]);
+
+    typedItems = await Promise.all(
+      items.map(async (item) => {
+        const reservation = await convexQuery<{
+          id: string;
+          itemId: string;
+          buyerId: string;
+          status: "active" | "expired" | "cancelled";
+          createdAt: number;
+          expiresAt: number;
+        } | null>("reservations:getActiveByItem", { itemId: item.id });
+        return {
+          id: item.id,
+          seller_id: item.sellerId,
+          title: item.title,
+          description: item.description,
+          pricing_type: item.pricingType,
+          pricing_detail: item.pricingDetail ?? null,
+          category: item.category,
+          size: item.size ?? null,
+          shoe_size: item.shoeSize ?? null,
+          image_url: item.imageUrl,
+          status: item.status,
+          created_at: new Date(item.createdAt).toISOString(),
+          updated_at: new Date(item.updatedAt).toISOString(),
+          reservations: reservation
+            ? [{
+                id: reservation.id,
+                item_id: reservation.itemId,
+                buyer_id: reservation.buyerId,
+                status: reservation.status,
+                created_at: new Date(reservation.createdAt).toISOString(),
+                expires_at: new Date(reservation.expiresAt).toISOString(),
+              }]
+            : [],
+        };
+      })
+    );
+
+    const activeMyReservations = myReservations.filter((r) => r.status === "active");
+    typedReservations = (
+      await Promise.all(
+        activeMyReservations.map(async (res) => {
+          const item = await convexQuery<{
+            id: string;
+            sellerId: string;
+            title: string;
+            description: string;
+            pricingType: "free" | "lending" | "other";
+            pricingDetail?: string;
+            category: "clothing" | "shoes" | "toys" | "outdoor_sports" | "other";
+            size?: string;
+            shoeSize?: string;
+            imageUrl: string;
+            status: "available" | "reserved";
+            createdAt: number;
+            updatedAt: number;
+          } | null>("items:getById", { id: res.itemId });
+          if (!item) return null;
+          const seller = await convexQuery<{
+            id: string;
+            name: string;
+            phone: string;
+            avatarUrl?: string;
+          } | null>("profiles:getById", { id: item.sellerId });
+          if (!seller) return null;
+          return {
+            id: res.id,
+            item_id: res.itemId,
+            buyer_id: res.buyerId,
+            status: res.status,
+            created_at: new Date(res.createdAt).toISOString(),
+            expires_at: new Date(res.expiresAt).toISOString(),
+            item: {
+              id: item.id,
+              seller_id: item.sellerId,
+              title: item.title,
+              description: item.description,
+              pricing_type: item.pricingType,
+              pricing_detail: item.pricingDetail ?? null,
+              category: item.category,
+              size: item.size ?? null,
+              shoe_size: item.shoeSize ?? null,
+              image_url: item.imageUrl,
+              status: item.status,
+              created_at: new Date(item.createdAt).toISOString(),
+              updated_at: new Date(item.updatedAt).toISOString(),
+              seller: {
+                id: seller.id,
+                name: seller.name,
+                phone: seller.phone,
+                avatar_url: seller.avatarUrl ?? null,
+              },
+            },
+          };
+        })
+      )
+    ).filter((v): v is NonNullable<typeof v> => !!v);
+  }
 
   // Items that others have reserved
   const itemsWithActiveReservations = typedItems.filter(

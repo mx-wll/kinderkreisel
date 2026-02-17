@@ -3,37 +3,32 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { convexClientMutation } from "@/lib/convex/client";
 
 export function DeleteItemConfirm({
   itemId,
-  imageUrl,
 }: {
   itemId: string;
-  imageUrl: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
     startTransition(async () => {
-      const supabase = createClient();
-
-      // Delete item (DB cascade removes reservations)
-      const { error } = await supabase
-        .from("items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) {
-        toast.error("Löschen fehlgeschlagen. Bitte versuche es erneut.");
+      const me = (await fetch("/api/auth/me").then((r) => r.json())) as { user: { id: string } | null };
+      if (!me.user) {
+        toast.error("Du bist nicht angemeldet.");
         return;
       }
 
-      // Clean up storage
-      await supabase.storage.from("items").remove([imageUrl]);
+      try {
+        await convexClientMutation("items:remove", { id: itemId, actorId: me.user.id });
+      } catch {
+        toast.error("Löschen fehlgeschlagen. Bitte versuche es erneut.");
+        return;
+      }
 
       toast.success("Artikel gelöscht.");
       router.push("/profile");

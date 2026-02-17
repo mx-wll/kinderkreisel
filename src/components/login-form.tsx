@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,6 +25,8 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,33 +38,63 @@ export function LoginForm({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
     setIsLoading(true);
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
-      if (error) throw error;
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        const message = body.error || "Login fehlgeschlagen.";
+        setShowResendVerification(response.status === 403);
+        throw new Error(message);
+      }
+      setShowResendVerification(false);
       router.push("/");
+      router.refresh();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setError("E-Mail oder Passwort stimmen nicht. Versuch's nochmal!");
-        } else if (error.message.includes("Email not confirmed")) {
-          setError(
-            "Bitte bestätige zuerst deine E-Mail-Adresse. Schau in dein Postfach!"
-          );
-        } else {
-          setError(error.message);
-        }
+        setError(error.message);
       } else {
         setError("Ein unbekannter Fehler ist aufgetreten.");
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("Bitte gib zuerst deine E-Mail-Adresse ein.");
+      return;
+    }
+    setIsResendingVerification(true);
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || "Bestätigungs-E-Mail konnte nicht gesendet werden.");
+      }
+      toast.success("Bestätigungs-E-Mail wurde erneut gesendet.");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Ein unbekannter Fehler ist aufgetreten.");
+      }
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -109,6 +140,17 @@ export function LoginForm({
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
+              {showResendVerification && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleResendVerification}
+                  disabled={isResendingVerification}
+                >
+                  {isResendingVerification ? "Wird gesendet..." : "Bestätigungs-E-Mail erneut senden"}
+                </Button>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Wird eingeloggt..." : "Einloggen"}
               </Button>
@@ -117,6 +159,12 @@ export function LoginForm({
               Noch kein Konto?{" "}
               <Link href="/signup" className="underline underline-offset-4">
                 Registrieren
+              </Link>
+            </div>
+            <div className="mt-2 text-center text-sm">
+              Bestehendes Konto?{" "}
+              <Link href="/claim-account" className="underline underline-offset-4">
+                Jetzt übernehmen
               </Link>
             </div>
           </form>

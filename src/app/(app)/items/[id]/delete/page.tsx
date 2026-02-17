@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getStorageUrl } from "@/lib/utils";
 import Image from "next/image";
 import { DeleteItemConfirm } from "./delete-confirm";
+import { convexQuery } from "@/lib/convex/server";
+import { getCurrentSession } from "@/lib/auth/server";
 
 export default async function DeleteItemPage({
   params,
@@ -10,22 +11,20 @@ export default async function DeleteItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const session = await getCurrentSession();
+  if (!session) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: item } = await supabase
-    .from("items")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const item = await convexQuery<{
+    id: string;
+    sellerId: string;
+    title: string;
+    imageUrl: string;
+  } | null>("items:getById", { id });
 
   if (!item) notFound();
-  if (item.seller_id !== user?.id) redirect(`/items/${id}`);
+  if (item.sellerId !== session.profileId) redirect(`/items/${id}`);
 
-  const imageUrl = getStorageUrl("items", item.image_url);
+  const imageUrl = getStorageUrl("items", item.imageUrl);
 
   return (
     <div className="px-4 py-6">
@@ -51,10 +50,7 @@ export default async function DeleteItemPage({
       </div>
 
       <div className="mt-6">
-        <DeleteItemConfirm
-          itemId={id}
-          imageUrl={item.image_url}
-        />
+        <DeleteItemConfirm itemId={id} />
       </div>
     </div>
   );

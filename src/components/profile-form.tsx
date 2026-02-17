@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { Profile } from "@/lib/types/database";
+import { convexClientMutation } from "@/lib/convex/client";
 
 export function ProfileForm({
   profile,
@@ -34,19 +34,16 @@ export function ProfileForm({
     }
 
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      try {
+        await convexClientMutation("profiles:update", {
+          id: profile.id,
           name: name.trim(),
           surname: surname.trim(),
           residency: residency.trim(),
           phone: phone.trim(),
-          email_notifications: emailNotifications,
-        })
-        .eq("id", profile.id);
-
-      if (error) {
+          emailNotifications,
+        });
+      } catch {
         toast.error("Profil konnte nicht aktualisiert werden.");
         return;
       }

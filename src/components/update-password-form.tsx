@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +25,7 @@ export function UpdatePasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,12 +38,20 @@ export function UpdatePasswordForm({
       return;
     }
 
-    const supabase = createClient();
-
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      const token = searchParams.get("token");
+      if (!token) throw new Error("Der Link ist ungültig.");
+      const response = await fetch("/api/auth/reset-password/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error || "Passwort konnte nicht aktualisiert werden.");
+      }
       router.push("/");
+      router.refresh();
     } catch (error: unknown) {
       setError(
         error instanceof Error
