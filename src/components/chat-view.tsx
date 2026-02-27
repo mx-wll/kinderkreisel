@@ -105,9 +105,9 @@ export function ChatView({
   const otherInitial = otherUser.name?.charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b bg-background px-3 py-2">
+      <div className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b bg-background px-3 py-2">
         <Link
           href="/messages"
           className="flex-shrink-0 rounded-full p-1 hover:bg-accent"
@@ -147,7 +147,7 @@ export function ChatView({
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
         <div className="mx-auto flex max-w-lg flex-col gap-2">
           {messages.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
@@ -184,7 +184,7 @@ export function ChatView({
       </div>
 
       {/* Input bar */}
-      <div className="border-t bg-background px-3 py-2">
+      <div className="sticky bottom-0 z-20 shrink-0 border-t bg-background px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();

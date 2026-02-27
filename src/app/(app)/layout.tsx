@@ -1,4 +1,4 @@
-import { BottomNav } from "@/components/bottom-nav";
+import { AppShell } from "@/components/app-shell";
 import { getCurrentSession } from "@/lib/auth/server";
 
 export default async function AppLayout({
@@ -8,10 +8,5 @@ export default async function AppLayout({
 }) {
   const session = await getCurrentSession();
 
-  return (
-    <div className="flex min-h-svh flex-col">
-      <main className={session ? "flex-1 pb-20" : "flex-1"}>{children}</main>
-      {session && <BottomNav />}
-    </div>
-  );
+  return <AppShell showBottomNav={Boolean(session)}>{children}</AppShell>;
 }
