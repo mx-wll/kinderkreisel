@@ -98,6 +98,32 @@ export const startConversation = mutation({
     sellerId: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.buyerId === args.sellerId) {
+      throw new Error("Cannot start a conversation with yourself");
+    }
+
+    const item = await ctx.db
+      .query("items")
+      .withIndex("by_legacy_id", (q) => q.eq("id", args.itemId))
+      .unique();
+    if (!item) throw new Error("Item not found");
+    if (item.sellerId !== args.sellerId) {
+      throw new Error("Seller does not match item owner");
+    }
+
+    const [buyerProfile, sellerProfile] = await Promise.all([
+      ctx.db
+        .query("profiles")
+        .withIndex("by_legacy_id", (q) => q.eq("id", args.buyerId))
+        .unique(),
+      ctx.db
+        .query("profiles")
+        .withIndex("by_legacy_id", (q) => q.eq("id", args.sellerId))
+        .unique(),
+    ]);
+    if (!buyerProfile) throw new Error("Buyer profile not found");
+    if (!sellerProfile) throw new Error("Seller profile not found");
+
     const existing = await ctx.db
       .query("conversations")
       .withIndex("by_itemId_buyerId", (q) => q.eq("itemId", args.itemId).eq("buyerId", args.buyerId))

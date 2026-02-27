@@ -12,14 +12,22 @@ export async function startChat(itemId: string, sellerId: string) {
     return { error: "Du kannst dir nicht selbst schreiben." };
   }
 
+  let result: { id: string };
   try {
-    const result = await convexMutation<{ id: string }>("chat:startConversation", {
+    result = await convexMutation<{ id: string }>("chat:startConversation", {
       itemId,
       buyerId: session.profileId,
       sellerId,
     });
-    redirect(`/messages/${result.id}`);
-  } catch {
+  } catch (error) {
+    console.error("Failed to start chat", {
+      itemId,
+      sellerId,
+      buyerId: session.profileId,
+      error,
+    });
     return { error: "Chat konnte nicht erstellt werden. Bitte versuche es erneut." };
   }
+
+  redirect(`/messages/${result.id}`);
 }
