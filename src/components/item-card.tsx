@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getStorageUrl, timeAgo, pricingLabel } from "@/lib/utils";
+import { getStorageUrl, timeAgo } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/types/database";
 import type { ItemWithSeller } from "@/lib/types/database";
 
@@ -30,11 +30,6 @@ export function ItemCard({ item }: { item: ItemWithSeller }) {
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
         <div className="absolute bottom-2 left-2 flex gap-1">
-          <Badge
-            variant={item.pricing_type === "free" ? "default" : "secondary"}
-          >
-            {pricingLabel(item.pricing_type, item.pricing_detail)}
-          </Badge>
           {item.category !== "other" && (
             <Badge variant="outline" className="bg-background/80 backdrop-blur-sm">
               {CATEGORIES.find((c) => c.slug === item.category)?.label}
