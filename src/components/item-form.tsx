@@ -176,7 +176,6 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
       <div className="space-y-2">
         <Label>Foto</Label>
         <ImageUpload
-          value={imageFile}
           onChange={setImageFile}
           existingUrl={existingImageUrl}
         />

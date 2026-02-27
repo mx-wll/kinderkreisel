@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PlusCircle, Clock, Phone, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -272,10 +273,12 @@ export default async function MyProfilePage() {
                     href={`/items/${item.id}`}
                     className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md"
                   >
-                    <img
+                    <Image
                       src={imageUrl}
                       alt={item.title}
-                      className="h-full w-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="64px"
                     />
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -382,10 +385,12 @@ export default async function MyProfilePage() {
                       href={`/items/${res.item.id}`}
                       className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md"
                     >
-                      <img
+                      <Image
                         src={itemImageUrl}
                         alt={res.item.title}
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
+                        sizes="64px"
                       />
                     </Link>
                     <div className="min-w-0 flex-1">

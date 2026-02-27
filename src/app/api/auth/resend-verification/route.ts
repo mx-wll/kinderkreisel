@@ -2,9 +2,14 @@ import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { convexMutation, convexQuery } from "@/lib/convex/server";
 
+function createResendSendFailedError(status: number) {
+  return new Error(`RESEND_SEND_FAILED:${status}`);
+}
+
 async function sendVerificationMail(to: string, link: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_NOT_CONFIGURED");
+  const from = process.env.RESEND_FROM_EMAIL || "findln <onboarding@resend.dev>";
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -13,13 +18,16 @@ async function sendVerificationMail(to: string, link: string) {
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      from: "findln <onboarding@resend.dev>",
+      from,
       to,
       subject: "Bitte bestätige deine E-Mail",
       html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
     }),
   });
-  if (!res.ok) throw new Error("RESEND_SEND_FAILED");
+  if (!res.ok) {
+    await res.text();
+    throw createResendSendFailedError(res.status);
+  }
 }
 
 export async function POST(request: Request) {
@@ -49,6 +57,10 @@ export async function POST(request: Request) {
     await sendVerificationMail(authUser.email, link);
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("RESEND_SEND_FAILED")) {
+      const [, status] = error.message.split(":");
+      console.error("[auth/resend-verification] resend send failed", { status });
+    }
     if (error instanceof Error && error.message.includes("RESEND_NOT_CONFIGURED")) {
       return NextResponse.json(
         { error: "E-Mail-Versand ist aktuell nicht konfiguriert." },

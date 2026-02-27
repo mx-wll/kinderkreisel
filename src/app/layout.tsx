@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Borel } from "next/font/google";
+import Script from "next/script";
 import { ConvexAppProvider } from "@/components/convex-provider";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
@@ -38,6 +39,9 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={`${geistSans.variable} ${borel.variable} font-sans antialiased`}>
+        {process.env.NODE_ENV !== "production" && (
+          <Script src="https://mcp.figma.com/mcp/html-to-design/capture.js" strategy="afterInteractive" />
+        )}
         <ConvexAppProvider>{children}</ConvexAppProvider>
         <Toaster richColors position="top-center" />
       </body>

@@ -1,241 +1,209 @@
-# findln — Database Design
+# Database Design
 
-## Overview
+Last updated: 2026-02-27
 
-All data lives in Supabase (Postgres). Authentication is handled by Supabase Auth (`auth.users`). Application data lives in the `public` schema. Row Level Security (RLS) is enabled on all tables.
+This project uses Convex as the application database. The schema lives in `convex/schema.ts`.
 
-## Entity Relationship Diagram
+## Data Model Notes
 
-```
-auth.users (managed by Supabase)
-    │
-    └─── profiles (1:1)
-            │
-            ├─── children (1:many)
-            │
-            ├─── items (1:many, as seller)
-            │       │
-            │       └─── reservations (1:1 active)
-            │
-            └─── reservations (1:many, as buyer)
-            │
-            ├─── conversations (1:many, as buyer or seller)
-            │       │
-            │       └─── messages (1:many)
-            │
-            └─── messages (1:many, as sender)
-```
+- External-facing IDs are stored as strings so legacy UUID-style IDs remain stable.
+- Timestamps are stored as epoch milliseconds.
+- Relationships are enforced in application logic and query patterns rather than SQL foreign keys.
+- Some legacy compatibility fields remain in the schema after migration from Supabase.
 
-## Tables
+## Collections
 
-### profiles
+### `profiles`
 
-Created automatically via a database trigger when a new user signs up in `auth.users`.
+Represents a user profile.
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | — | PK, references `auth.users.id`, ON DELETE CASCADE |
-| name | text | no | — | |
-| surname | text | no | — | |
-| residency | text | no | — | |
-| zip_code | text | no | — | Validated as '83623' at signup |
-| phone | text | no | — | |
-| avatar_url | text | yes | null | Path in Supabase Storage |
-| phone_consent | boolean | no | false | User consented to phone sharing on reservation |
-| email_notifications | boolean | no | true | Opt-out toggle for reservation + message digest emails |
-| last_message_email_at | timestamptz | no | now() | Tracks when last message digest email was sent; defaults to now() so existing users don't get a backlog |
-| created_at | timestamptz | no | now() | |
-| updated_at | timestamptz | no | now() | Updated via trigger |
+| Field | Type | Notes |
+|------|------|-------|
+| `id` | string | Primary external profile ID |
+| `name` | string | |
+| `surname` | string | |
+| `residency` | string | |
+| `zipCode` | string | Currently set to `83623` on signup |
+| `phone` | string | |
+| `avatarUrl` | string optional | Public image URL |
+| `avatarStorageId` | string optional | Convex storage ID |
+| `phoneConsent` | boolean | Whether phone number can be shown after reservation |
+| `emailNotifications` | boolean | Profile-level toggle |
+| `lastMessageEmailAt` | number | Reserved for digest batching |
+| `createdAt` | number | |
+| `updatedAt` | number | |
 
-### children
+Indexes:
+- `by_legacy_id` on `id`
+- `by_createdAt` on `createdAt`
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | gen_random_uuid() | PK |
-| profile_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE |
-| age | integer | yes | null | Age in years |
-| gender | text | yes | null | e.g. 'male', 'female', 'other' |
-| created_at | timestamptz | no | now() | |
+### `children`
 
-### items
+Legacy/imported child metadata associated with a profile.
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | gen_random_uuid() | PK |
-| seller_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE |
-| title | text | no | — | |
-| description | text | no | — | |
-| pricing_type | text | no | 'free' | One of: 'free', 'lending', 'other' |
-| pricing_detail | text | yes | null | Free text, only used when pricing_type = 'other' |
-| category | text | no | 'other' | One of: 'clothing', 'shoes', 'toys', 'outdoor_sports', 'other' |
-| size | text | yes | null | Clothing size (50–176), only when category = 'clothing' |
-| shoe_size | text | yes | null | EU shoe size (16–40), only when category = 'shoes' |
-| image_url | text | no | — | Path in Supabase Storage |
-| status | text | no | 'available' | One of: 'available', 'reserved' |
-| created_at | timestamptz | no | now() | |
-| updated_at | timestamptz | no | now() | Updated via trigger |
+| Field | Type |
+|------|------|
+| `id` | string |
+| `profileId` | string |
+| `age` | number optional |
+| `gender` | string optional |
+| `createdAt` | number |
 
-### reservations
+Indexes:
+- `by_legacy_id`
+- `by_profileId`
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | gen_random_uuid() | PK |
-| item_id | uuid | no | — | FK → items.id, ON DELETE CASCADE |
-| buyer_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE |
-| status | text | no | 'active' | One of: 'active', 'expired', 'cancelled' |
-| created_at | timestamptz | no | now() | |
-| expires_at | timestamptz | no | now() + 48h | |
+Note: the collection remains in the schema, but it is not a major surfaced UI feature in the current app.
 
-**Constraint**: Unique on (item_id) WHERE status = 'active' — enforces one active reservation per item.
+### `items`
 
-### conversations
+Marketplace listings.
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | gen_random_uuid() | PK |
-| item_id | uuid | no | — | FK → items.id, ON DELETE CASCADE |
-| buyer_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE (initiator) |
-| seller_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE (item owner) |
-| created_at | timestamptz | no | now() | |
-| updated_at | timestamptz | no | now() | Updated via moddatetime trigger + message insert trigger |
+| Field | Type | Notes |
+|------|------|-------|
+| `id` | string | External item ID |
+| `sellerId` | string | Profile ID |
+| `title` | string | |
+| `description` | string | |
+| `pricingType` | string | `free`, `lending`, `other` |
+| `pricingDetail` | string optional | Free-text detail when `pricingType=other` |
+| `category` | string | `clothing`, `shoes`, `toys`, `outdoor_sports`, `other` |
+| `size` | string optional | Clothing sizes |
+| `shoeSize` | string optional | Shoe sizes |
+| `imageUrl` | string | Resolved public URL |
+| `imageStorageId` | string optional | Convex storage ID |
+| `status` | string | `available` or `reserved` |
+| `createdAt` | number | |
+| `updatedAt` | number | |
 
-**Constraint**: UNIQUE(item_id, buyer_id) — one conversation per buyer per item.
+Indexes:
+- `by_legacy_id`
+- `by_sellerId`
+- `by_status_createdAt`
+- `by_category`
 
-### messages
+### `reservations`
 
-| Column | Type | Nullable | Default | Notes |
-|--------|------|----------|---------|-------|
-| id | uuid | no | gen_random_uuid() | PK |
-| conversation_id | uuid | no | — | FK → conversations.id, ON DELETE CASCADE |
-| sender_id | uuid | no | — | FK → profiles.id, ON DELETE CASCADE |
-| content | text | no | — | Max 2000 chars (CHECK constraint) |
-| read_at | timestamptz | yes | null | NULL = unread, set when recipient opens conversation |
-| created_at | timestamptz | no | now() | |
+Represents a temporary hold on an item.
 
-**Realtime**: Added to `supabase_realtime` publication for live message delivery.
+| Field | Type | Notes |
+|------|------|-------|
+| `id` | string | |
+| `itemId` | string | |
+| `buyerId` | string | Profile ID |
+| `status` | string | `active`, `expired`, `cancelled` |
+| `createdAt` | number | |
+| `expiresAt` | number | 48 hours after reservation |
 
-## Storage Buckets
+Indexes:
+- `by_legacy_id`
+- `by_itemId_status`
+- `by_buyerId`
+- `by_status_expiresAt`
 
-| Bucket | Public | Purpose |
-|--------|--------|---------|
-| avatars | yes | Profile images. Path: `{user_id}/avatar.{ext}` |
-| items | yes | Item photos. Path: `{user_id}/{item_id}.{ext}` |
+### `conversations`
 
-Both buckets are publicly readable (images need to display without auth). Uploads are restricted to authenticated users via Storage policies.
+Chat thread between buyer and seller for a specific item.
 
-## Row Level Security (RLS) Policies
+| Field | Type |
+|------|------|
+| `id` | string |
+| `itemId` | string |
+| `buyerId` | string |
+| `sellerId` | string |
+| `createdAt` | number |
+| `updatedAt` | number |
 
-### profiles
+Indexes:
+- `by_legacy_id`
+- `by_itemId_buyerId`
+- `by_buyerId_updatedAt`
+- `by_sellerId_updatedAt`
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | Anyone authenticated can read any profile |
-| INSERT | Users can only insert their own profile (id = auth.uid()) |
-| UPDATE | Users can only update their own profile |
-| DELETE | Users can only delete their own profile |
+### `messages`
 
-### children
+Individual chat messages.
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | Anyone authenticated can read (children are shown on profiles) |
-| INSERT | Users can only insert children for their own profile |
-| UPDATE | Users can only update their own children |
-| DELETE | Users can only delete their own children |
+| Field | Type | Notes |
+|------|------|-------|
+| `id` | string | |
+| `conversationId` | string | |
+| `senderId` | string | Profile ID |
+| `content` | string | Max length enforced in mutation logic |
+| `readAt` | number optional | |
+| `createdAt` | number | |
 
-### items
+Indexes:
+- `by_legacy_id`
+- `by_conversationId_createdAt`
+- `by_conversationId_readAt`
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | Anyone authenticated can read any item |
-| INSERT | Users can only insert items where seller_id = auth.uid(). Enforce max 20 items via check. |
-| UPDATE | Users can only update their own items |
-| DELETE | Users can only delete their own items |
+### `authUsers`
 
-### reservations
+App-managed auth identity records.
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | Buyer or seller of the item can read the reservation |
-| INSERT | Any authenticated user can create a reservation (except on own items — enforced in app logic) |
-| UPDATE | Only the seller can cancel (update status to 'cancelled') |
-| DELETE | Not allowed via API |
+| Field | Type | Notes |
+|------|------|-------|
+| `id` | string | Auth record ID |
+| `profileId` | string | Linked profile |
+| `email` | string | Lowercased and unique |
+| `passwordHash` | string | `bcryptjs` hash |
+| `emailVerified` | boolean | |
+| `createdAt` | number | |
+| `updatedAt` | number | |
 
-### conversations
+Indexes:
+- `by_auth_id`
+- `by_profileId`
+- `by_email`
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | Participant only (buyer_id or seller_id = auth.uid()) |
-| INSERT | Buyer only (auth.uid() = buyer_id) |
-| UPDATE | Participant only (for updated_at) |
-| DELETE | Not allowed via API |
+### `passwordResets`
 
-### messages
+One-time password reset tokens.
 
-| Operation | Policy |
-|-----------|--------|
-| SELECT | User is participant of the conversation (join to conversations) |
-| INSERT | User is participant of the conversation AND sender_id = auth.uid() |
-| UPDATE | Recipient only (sender_id != auth.uid()), for marking read_at |
-| DELETE | Not allowed via API |
+| Field | Type |
+|------|------|
+| `tokenHash` | string |
+| `profileId` | string |
+| `expiresAt` | number |
+| `usedAt` | number optional |
+| `createdAt` | number |
 
-## Triggers & Functions
+Indexes:
+- `by_tokenHash`
+- `by_profileId`
 
-### on_auth_user_created
+### `emailVerifications`
 
-- **Event**: After INSERT on `auth.users`
-- **Action**: Creates a row in `profiles` with the user's id and metadata (name, surname, etc. passed during signup)
+One-time email verification tokens.
 
-### update_updated_at
+| Field | Type |
+|------|------|
+| `tokenHash` | string |
+| `profileId` | string |
+| `expiresAt` | number |
+| `usedAt` | number optional |
+| `createdAt` | number |
 
-- **Event**: Before UPDATE on `profiles`, `items`
-- **Action**: Sets `updated_at = now()`
+Indexes:
+- `by_tokenHash`
+- `by_profileId`
 
-### handle_conversations_updated_at
+## Operational Logic
 
-- **Event**: Before UPDATE on `conversations`
-- **Action**: Sets `updated_at = now()` via moddatetime extension
+### Reservation expiry
 
-### update_conversation_updated_at
+- Scheduled every 15 minutes by `convex/crons.ts`.
+- Expired active reservations are marked as `expired`.
+- Associated items are returned to `available`.
 
-- **Event**: After INSERT on `messages`
-- **Action**: Updates the parent conversation's `updated_at` to now(), so conversation list sorts by latest message
+### Cascade-style cleanup
 
-### on_reservation_send_notification
+Delete flows are implemented in Convex mutations rather than database foreign keys:
 
-- **Event**: After INSERT on `reservations`
-- **Action**: Calls Edge Function `send-notification` via `pg_net` HTTP POST — sends email to seller with buyer name and item title
+- Deleting a profile removes children, items, reservations, conversations, messages, and stored avatar/item files.
+- Deleting an item removes active reservations, conversations, messages, and its stored image.
 
-### expire_reservations (Cron)
+## Historical Note
 
-- **Mechanism**: Supabase `pg_cron` extension (available on free tier)
-- **Schedule**: Runs every 15 minutes
-- **Action**: Updates reservations where `expires_at < now()` AND `status = 'active'` → sets `status = 'expired'` and sets the corresponding item's `status` back to `'available'`
-
-### send_message_digest (Cron)
-
-- **Mechanism**: Supabase `pg_cron` + `pg_net` → Edge Function `send-message-digest`
-- **Schedule**: Every 6 hours (`0 */6 * * *`)
-- **Action**: Calls Edge Function that queries unread messages since each user's `last_message_email_at`, groups by conversation, sends a digest email via Resend, and updates `last_message_email_at`
-
-### get_unread_messages_for_digest (RPC)
-
-- **Type**: SQL function (`SECURITY DEFINER`)
-- **Parameters**: `p_user_id uuid`, `p_since timestamptz`
-- **Returns**: Unread messages (not sent by user, `read_at IS NULL`, `created_at > p_since`) with sender name/surname, item title, conversation ID
-- **Used by**: Edge Function `send-message-digest`
-
-## Indexes
-
-| Table | Column(s) | Type | Purpose |
-|-------|-----------|------|---------|
-| items | seller_id | btree | Fast lookup of items by seller |
-| items | created_at | btree desc | Home feed sort order |
-| items | status | btree | Filter available items |
-| items | category | btree | Filter by category |
-| reservations | item_id, status | btree (partial: WHERE status = 'active') | Fast active reservation lookup |
-| reservations | buyer_id | btree | User's reservations |
-| profiles | id | btree (PK) | Already indexed |
-| conversations | buyer_id | btree | User's conversations as buyer |
-| conversations | seller_id | btree | User's conversations as seller |
-| messages | conversation_id | btree | Messages per conversation |
+The app was migrated from Supabase to Convex. Legacy IDs and some legacy asset URLs still exist for compatibility, but the runtime database is now fully Convex-backed.

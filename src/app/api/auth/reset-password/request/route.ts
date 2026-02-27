@@ -5,29 +5,35 @@ import { convexMutation, convexQuery } from "@/lib/convex/server";
 async function sendResetMail(to: string, link: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) return;
-  await fetch("https://api.resend.com/emails", {
+  const from = process.env.RESEND_FROM_EMAIL || "findln <onboarding@resend.dev>";
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      from: "findln <onboarding@resend.dev>",
+      from,
       to,
       subject: "Passwort zurücksetzen",
       html: `<p>Setze dein Passwort zurück:</p><p><a href="${link}">${link}</a></p>`,
     }),
   });
+  if (!res.ok) {
+    await res.text();
+    console.error("[auth/reset-password] resend send failed", { status: res.status });
+  }
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { email: string };
-  if (!body.email) return NextResponse.json({ success: true });
+  const email = body.email?.trim().toLowerCase();
+  if (!email) return NextResponse.json({ success: true });
 
   const authUser = await convexQuery<{
     profileId: string;
     email: string;
-  } | null>("auth:getAuthUserByEmail", { email: body.email.toLowerCase() });
+  } | null>("auth:getAuthUserByEmail", { email });
 
   if (authUser) {
     const token = randomBytes(32).toString("hex");

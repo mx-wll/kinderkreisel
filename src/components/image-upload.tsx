@@ -14,11 +14,9 @@ const COMPRESSION_OPTIONS = {
 };
 
 export function ImageUpload({
-  value,
   onChange,
   existingUrl,
 }: {
-  value: File | null;
   onChange: (file: File | null) => void;
   existingUrl?: string;
 }) {

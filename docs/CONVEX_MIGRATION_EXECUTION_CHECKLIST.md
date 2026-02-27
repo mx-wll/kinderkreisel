@@ -1,5 +1,8 @@
 # Supabase -> Convex Execution Checklist
 
+> Historical note: this document is preserved as migration/build history. The current runtime backend is Convex, route protection lives in `src/proxy.ts`, and the current architecture is documented in `ARCHITECTURE.md`, `TECH.md`, and `DATABASE.md`.
+
+
 Last updated: 2026-02-17
 
 ## 0) Setup and wiring

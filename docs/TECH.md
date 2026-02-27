@@ -1,86 +1,79 @@
 # findln — Technical Requirements
 
+Last updated: 2026-02-27
+
 ## Stack
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Language | TypeScript | Strict mode |
-| Framework | Next.js 15 (App Router) | React 19, Server Components |
-| UI Components | shadcn/ui | Built on Radix UI + Tailwind CSS v4 |
-| Styling | Tailwind CSS v4 | Comes with shadcn/ui |
-| Backend / Database | Supabase | Postgres, Auth, Storage, Edge Functions, RLS |
-| Image Compression | browser-image-compression | Client-side resize to 800px wide, ~200KB max |
+| Framework | Next.js 16 | App Router, Server Components, route handlers |
+| UI | React 19 + shadcn/ui | Radix-based primitives |
+| Styling | Tailwind CSS v4 | Global CSS + utility classes |
+| Backend | Convex | Database, realtime, storage, cron jobs |
+| Authentication | Custom auth on Next.js + JWT cookie | `jose` + `bcryptjs` |
+| Email | Resend | Verification and password reset |
+| Image Compression | `browser-image-compression` | Client-side before upload |
 | Package Manager | pnpm | |
-| Deployment | Vercel (free tier) | |
-
-## Constraints
-
-- **Budget**: €0/month — free tiers only (Supabase free, Vercel free)
-- **Maintainer**: Solo developer
-- **UI Language**: German only — no i18n setup needed
+| Deployment | Vercel | Preview + production capable |
 
 ## Environment Variables
 
-See `.env.example` in the project root.
+See `.env.example` for the canonical template.
 
 | Variable | Description | Public |
 |----------|-------------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Yes (client-side) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key | Yes (client-side, protected by RLS) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only, for account deletion) | No |
-| `RESEND_API_KEY` | Resend API key (set as Supabase Edge Function secret) | No |
+| `CONVEX_DEPLOYMENT` | Convex deployment identifier | No |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL | Yes |
+| `AUTH_SECRET` | Signing secret for the session JWT | No |
+| `ENABLE_ACCOUNT_CLAIM` | Enables legacy profile claiming flow | No |
+| `RESEND_API_KEY` | Resend API key | No |
+| `RESEND_FROM_EMAIL` | Sender identity for Resend emails | No |
 
 ## Authentication
 
-Handled entirely by Supabase Auth:
-- Email/password signup with email verification
-- Password reset flow
-- Zip code 83623 validated at signup (self-reported, stored in user metadata)
-- Profile row created automatically via database trigger on signup
+- Email/password signup and login are handled by app route handlers under `/api/auth/*`.
+- Passwords are hashed with `bcryptjs`.
+- Sessions are signed with `jose` and stored in the `kk_session` HTTP-only cookie.
+- Session lifetime is 30 days.
+- Email verification is required in production when Resend is configured.
+- In non-production environments without Resend configured, signup auto-verifies accounts.
+- Password reset uses one-time tokens stored in Convex.
+- Legacy account claim exists for imported profiles and is gated by `ENABLE_ACCOUNT_CLAIM`.
 
-## Image Handling
+## Data + Storage
 
-- 1 photo per item (required), 1 optional avatar per user
-- Client-side compression via `browser-image-compression` before upload
-- Target: 800px wide, ~200KB max file size
-- Stored in Supabase Storage (public buckets)
-- Bucket paths:
-  - Avatars: `avatars/{user_id}/avatar.{ext}`
-  - Items: `items/{user_id}/{item_id}.{ext}`
+- Application records live in Convex collections.
+- User-uploaded images are stored in Convex Storage.
+- `next.config.ts` allows remote images from:
+  - Convex storage URLs (`**.convex.cloud/api/storage/**`)
+  - Legacy Supabase public storage URLs still referenced by migrated data
 
-## Email Notifications
+## Search + Filtering
 
-- **Provider**: Resend (free tier: 100 emails/day)
-- **Sender**: `findln <onboarding@resend.dev>` (Resend test domain — upgrade to custom domain later)
-- **Secret**: `RESEND_API_KEY` stored as Supabase Edge Function secret
-- **Opt-out**: Users can disable via `email_notifications` toggle on profile page
+- Search is implemented as case-insensitive substring matching on item title and description.
+- Filters are driven by URL search params: `q`, `category`, `size`, `shoe_size`, `pricing`.
+- The feed query is currently implemented in `convex/items.ts` (`listAvailable`).
 
-### Reservation notifications (instant)
+## Background Jobs
 
-- **Trigger**: `pg_net` trigger on `reservations` table → Edge Function `send-notification`
-- **Event**: New reservation → seller receives email with buyer name and item title
-- **Rationale**: Time-sensitive (48h expiry), must be instant
+Configured in `convex/crons.ts`:
 
-### Message digest (batched, every 6 hours)
+- Reservation expiry every 15 minutes via `maintenance.expireReservations`
+- Message digest schedule every 6 hours via `maintenance.sendMessageDigest`
 
-- **Trigger**: `pg_cron` job (`0 */6 * * *`) → `pg_net` POST → Edge Function `send-message-digest`
-- **Logic**: Queries unread messages since `profiles.last_message_email_at`, groups by conversation, sends one digest email per user
-- **Tracking**: `last_message_email_at` column on `profiles` updated after each digest send
-- **RPC**: `get_unread_messages_for_digest(p_user_id, p_since)` — SQL function used by Edge Function
+Current status:
+- Reservation expiry is implemented.
+- Message digest scheduling exists, but the send logic is still a placeholder.
 
-## Reservation Expiry
+## Deployment Notes
 
-- Mechanism: `pg_cron` (Postgres cron, available on Supabase free tier)
-- Schedule: Every 15 minutes
-- Action: Marks expired reservations (`expires_at < now()`) and resets item status to `available`
-
-## Deployment
-
-- Vercel free tier, connected to the GitHub repo
-- Automatic deployments on push to `main`
-- Preview deployments on pull requests
+- Production build is `next build`.
+- Convex deployment is handled with `pnpm convex:deploy`.
+- The app currently builds cleanly with Next.js 16.1.6.
 
 ## Related Documents
 
-- [Product Requirements](./PRD.md)
-- [Database Design](./DATABASE.md)
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DATABASE.md](./DATABASE.md)
+- [SEARCH_FEATURE.md](./SEARCH_FEATURE.md)

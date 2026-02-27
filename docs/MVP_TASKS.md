@@ -1,5 +1,8 @@
 # MVP Build — Granular Task List
 
+> Historical note: this document is preserved as migration/build history. The current runtime backend is Convex, route protection lives in `src/proxy.ts`, and the current architecture is documented in `ARCHITECTURE.md`, `TECH.md`, and `DATABASE.md`.
+
+
 This is the step-by-step build plan for the findln MVP. Each task is small enough to pick up independently. Check off tasks as they are completed.
 
 ---

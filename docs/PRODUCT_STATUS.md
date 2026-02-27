@@ -1,76 +1,70 @@
 # Product Status
 
-## MVP
+Last updated: 2026-02-27
+
+## Current Runtime
 
 ### Authentication
 - [x] Email/password signup
-- [x] Email verification (Supabase Auth)
-- [x] Password reset flow
-- [x] Zip code 83623 validation at signup
+- [x] Email verification via Resend
+- [x] Resend verification email action from login form
+- [x] Password reset request + confirm flow
 - [x] Sign in / sign out
+- [x] Fixed zip code `83623` applied on signup
+- [x] Optional legacy account claim flow (`/claim-account`)
 
 ### User Profiles
-- [x] Profile creation on signup (database trigger)
+- [x] Profile creation during signup
 - [x] View own profile
-- [x] Edit profile (name, surname, residency, phone, children)
+- [x] Edit profile (name, surname, residency, phone)
+- [x] Toggle email notifications on profile
 - [x] Upload / change / remove avatar
 - [x] View other user profiles
 
 ### Items
-- [x] Create item (photo, title, description, pricing)
+- [x] Create item with photo, title, description, pricing, and category
 - [x] Client-side image compression
 - [x] Edit item
 - [x] Delete item
 - [x] 20 item limit per user
 - [x] Item detail page
+- [x] Home feed search + filters
 
-### Reservation System
-- [x] Reserve button (hidden on own items)
-- [x] One reservation per item (first come, first served)
-- [x] 48h auto-expiry (pg_cron)
-- [x] Seller can cancel reservation
-- [x] Phone number revealed to buyer on reservation
+### Reservations
+- [x] Reserve button hidden on own items
+- [x] One active reservation per item enforced in mutation logic
+- [x] Seller and buyer can cancel active reservations
+- [x] 48-hour auto-expiry via Convex cron
+- [x] Seller phone number revealed to reserving buyer
 
-### Navigation & Pages
-- [x] Bottom tab bar (Home, Stöbern, Einstellen, Nachrichten, Profil)
-- [x] Home feed (items, newest first)
-- [x] Profiles list (sorted by most items)
-- [x] Add Item form
-- [x] My Profile page
+### Messaging
+- [x] In-app chat per item
+- [x] Conversation list page
+- [x] Conversation detail page
+- [x] Unread badge
+- [x] Realtime message updates via Convex subscriptions
 
-### Polish
-- [x] Empty states with German CTAs
-- [x] Privacy policy page
-- [x] Account deletion (cascade all data)
-- [x] Consent checkbox at signup
-- [x] Seed script (10 users, 150 items)
+### Legal + Account
+- [x] Privacy page
+- [x] Impressum page
+- [x] Account deletion with cascade cleanup
 
 ### Infrastructure
-- [x] Next.js project setup
-- [x] Supabase project connected
-- [x] shadcn/ui installed
-- [x] Database schema deployed
-- [x] RLS policies applied
-- [x] Storage buckets created
-- [ ] Vercel deployment
+- [x] Next.js 16 app structure
+- [x] Convex integrated as primary backend
+- [x] Convex storage uploads
+- [x] Auth route handlers under `/api/auth/*`
+- [x] Route protection via `src/proxy.ts`
+- [ ] Vercel production deployment verified in docs
 
----
+## Not Fully Implemented Yet
 
-## V1
+- [ ] Message digest email sending logic (cron exists, handler is still a placeholder)
+- [ ] Reservation notification emails beyond auth emails
+- [ ] Dedicated browse page separate from `/`
+- [ ] Social login
+- [ ] Advanced search (ranking, typo tolerance, autocomplete)
 
-- [ ] Google social login
-- [ ] Apple social login
-- [x] In-app chat (per item, real-time via Supabase Realtime)
-- [ ] Item browsing page with search
-- [ ] Filter by type, monetization, child age
-- [x] Email notifications (reservations + new messages via Resend)
+## Notes
 
----
-
-## V2
-
-- [ ] Image guidance for sellers
-- [ ] AI-generated descriptions
-- [ ] Sophisticated category model
-- [ ] User onboarding / seller guidelines
-- [ ] Impressum page
+Older documents in this folder may describe Supabase-era plans or migration work. The current runtime backend is Convex.

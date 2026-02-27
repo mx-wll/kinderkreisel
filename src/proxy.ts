@@ -16,7 +16,7 @@ const PUBLIC_ROUTES = [
 
 const AUTH_ROUTES = ["/login", "/signup", "/claim-account", "/reset-password", "/signup-success"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();

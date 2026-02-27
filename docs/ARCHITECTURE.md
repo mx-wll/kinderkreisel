@@ -1,149 +1,159 @@
 # Architecture
 
+Last updated: 2026-02-27
+
 ## Overview
 
-findln is a mobile-first web app built with Next.js 15 (App Router) and Supabase as the backend.
+findln is a mobile-first marketplace built with Next.js 16 (App Router) on the frontend and Convex for app data, realtime updates, storage, and background jobs. Authentication is app-managed through Next.js route handlers and a signed session cookie.
 
 ## High-Level Architecture
 
+```text
+Browser (mobile-first web app)
+    |
+    +- Next.js App (Vercel)
+    |    +- App Router pages and layouts
+    |    +- Route handlers under /api/auth/* and /api/account
+    |    +- Server Components for page data loading
+    |    +- Client Components for forms, chat, uploads, and filters
+    |    +- src/proxy.ts for route protection and auth redirects
+    |
+    +- Convex
+         +- Database collections (profiles, items, reservations, chat, auth)
+         +- Realtime subscriptions for chat and unread counts
+         +- Storage for avatars and item photos
+         +- Cron jobs for reservation expiry and message digest scheduling
+         +- Generated client/server API bindings
+
+External services
+    +- Resend for verification and password reset emails
 ```
-Browser (PWA)
-    │
-    ├── Next.js App (Vercel)
-    │     ├── App Router (React 19 Server Components)
-    │     ├── Server Actions (reserve, cancel reservation, start chat)
-    │     ├── API Routes (account deletion)
-    │     ├── shadcn/ui components
-    │     └── Client-side image compression
-    │
-    └── Supabase
-          ├── Auth (email/password, email verification)
-          ├── Postgres (profiles, items, reservations, children, conversations, messages)
-          ├── Realtime (postgres_changes on messages table)
-          ├── Edge Functions (send-notification → Resend email API)
-          ├── Storage (avatars, item photos)
-          ├── RLS (row-level security on all tables)
-          ├── pg_net (async HTTP from triggers → Edge Functions)
-          └── pg_cron (reservation expiry every 15 min)
-```
+
+## Runtime Model
+
+- Guests see a landing page at `/`.
+- Signed-in users see the item feed at `/`.
+- Auth state is stored in the `kk_session` HTTP-only cookie.
+- `src/proxy.ts` protects non-public routes and redirects authenticated users away from auth pages.
+- Data reads and writes go through Convex queries/mutations.
+- File uploads go through Convex upload URLs and Convex Storage.
 
 ## Project Structure
 
-```
+```text
 kinderkreisel/
-├── .claude/                     # Claude Code config
-│   └── commands/                # Custom slash commands
-├── docs/                        # Project documentation
-├── src/
-│   ├── app/
-│   │   ├── (auth)/              # Auth route group (shared layout, no bottom nav)
-│   │   │   ├── layout.tsx       # Centered card layout for all auth pages
-│   │   │   ├── login/           # /login
-│   │   │   ├── signup/          # /signup
-│   │   │   ├── signup-success/  # /signup-success
-│   │   │   ├── reset-password/  # /reset-password
-│   │   │   └── auth/
-│   │   │       ├── confirm/     # /auth/confirm (token exchange callback)
-│   │   │       ├── error/       # /auth/error
-│   │   │       └── update-password/ # /auth/update-password
-│   │   ├── (app)/               # App route group (shared layout, bottom nav)
-│   │   │   ├── layout.tsx       # App layout with BottomNav and content padding
-│   │   │   ├── loading.tsx      # Home feed skeleton
-│   │   │   ├── page.tsx         # Home feed (/)
-│   │   │   ├── items/
-│   │   │   │   ├── new/         # /items/new (create item)
-│   │   │   │   └── [id]/
-│   │   │   │       ├── page.tsx         # Item detail
-│   │   │   │       ├── loading.tsx      # Item detail skeleton
-│   │   │   │       ├── not-found.tsx    # Item 404
-│   │   │   │       ├── actions.ts       # Server actions (reserve, cancel)
-│   │   │   │       ├── chat-action.ts   # Server action (start/find chat)
-│   │   │   │       ├── reserve-button.tsx
-│   │   │   │       ├── cancel-reservation-button.tsx
-│   │   │   │       ├── edit/    # /items/[id]/edit
-│   │   │   │       └── delete/  # /items/[id]/delete
-│   │   │   ├── messages/
-│   │   │   │   ├── page.tsx             # Conversation list (/messages)
-│   │   │   │   └── [id]/
-│   │   │   │       ├── layout.tsx       # Full-screen overlay (hides bottom nav)
-│   │   │   │       └── page.tsx         # Conversation detail
-│   │   │   ├── profile/
-│   │   │   │   ├── page.tsx             # My profile (view/edit, items, reservations)
-│   │   │   │   ├── loading.tsx          # Profile skeleton
-│   │   │   │   └── profile-edit-toggle.tsx
-│   │   │   ├── profiles/
-│   │   │   │   ├── page.tsx             # Profiles list
-│   │   │   │   └── [id]/page.tsx        # Public profile
-│   │   │   ├── privacy/         # /privacy
-│   │   │   └── impressum/       # /impressum
-│   │   ├── api/
-│   │   │   └── account/route.ts # DELETE /api/account (account deletion)
-│   │   ├── layout.tsx           # Root layout (font, toaster, html lang=de)
-│   │   └── globals.css
-│   ├── components/
-│   │   ├── ui/                  # shadcn/ui primitives (button, card, skeleton, etc.)
-│   │   ├── login-form.tsx
-│   │   ├── sign-up-form.tsx
-│   │   ├── forgot-password-form.tsx
-│   │   ├── update-password-form.tsx
-│   │   ├── logout-button.tsx
-│   │   ├── bottom-nav.tsx       # 5-tab nav (Home, Stöbern, Einstellen, Nachrichten, Profil)
-│   │   ├── item-card.tsx        # Feed card (image, badge, seller, time)
-│   │   ├── item-form.tsx        # Reusable create/edit form
-│   │   ├── image-upload.tsx     # Image picker with compression
-│   │   ├── chat-view.tsx        # Chat UI (messages, real-time, send, mark-as-read)
-│   │   ├── start-chat-button.tsx # "Nachricht schreiben" button
-│   │   ├── unread-badge.tsx     # Real-time unread count badge
-│   │   ├── profile-card.tsx     # Profiles list card
-│   │   ├── profile-form.tsx     # Profile edit form
-│   │   ├── avatar-upload.tsx    # Avatar upload/remove
-│   │   ├── refresh-button.tsx   # Feed refresh
-│   │   └── delete-account-button.tsx
-│   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts        # Browser Supabase client
-│   │   │   ├── server.ts        # Server Supabase client (cookies)
-│   │   │   └── middleware.ts    # Session refresh + route protection
-│   │   ├── types/
-│   │   │   └── database.ts      # TypeScript types matching DB schema
-│   │   └── utils.ts             # cn(), getStorageUrl(), timeAgo(), pricingLabel(), timeRemaining(), whatsappUrl()
-│   └── middleware.ts            # Next.js middleware entry point
-├── CLAUDE.md
-├── .env.example
-└── package.json
++- convex/
+|  +- auth.ts                 # Auth user + token mutations/queries
+|  +- chat.ts                 # Conversations, messages, unread counts
+|  +- crons.ts                # Scheduled jobs
+|  +- files.ts                # Upload URL + storage helpers
+|  +- items.ts                # Feed, item CRUD, reservation entry points
+|  +- maintenance.ts          # Reservation expiry + digest scheduler hooks
+|  +- migrations.ts           # Legacy data import/count tooling
+|  +- profiles.ts             # Profile CRUD + cascade removal
+|  +- reservations.ts         # Reservation lookup helpers
+|  +- schema.ts               # Convex schema
+|  +- _generated/             # Generated Convex API/types
++- docs/
++- src/
+|  +- app/
+|  |  +- (auth)/
+|  |  |  +- login/page.tsx
+|  |  |  +- signup/page.tsx
+|  |  |  +- signup-success/page.tsx
+|  |  |  +- reset-password/page.tsx
+|  |  |  +- claim-account/page.tsx
+|  |  |  +- auth/
+|  |  |     +- confirm/route.ts
+|  |  |     +- error/page.tsx
+|  |  |     +- update-password/page.tsx
+|  |  +- (app)/
+|  |  |  +- page.tsx          # Landing page for guests, feed for signed-in users
+|  |  |  +- items/
+|  |  |  +- messages/
+|  |  |  +- profile/
+|  |  |  +- profiles/
+|  |  |  +- privacy/page.tsx
+|  |  |  +- impressum/page.tsx
+|  |  +- api/
+|  |     +- account/route.ts
+|  |     +- auth/
+|  |        +- claim/route.ts
+|  |        +- login/route.ts
+|  |        +- logout/route.ts
+|  |        +- me/route.ts
+|  |        +- resend-verification/route.ts
+|  |        +- reset-password/
+|  |        +- signup/route.ts
+|  |        +- verify-email/route.ts
+|  +- components/
+|  |  +- convex-provider.tsx
+|  |  +- item-form.tsx
+|  |  +- chat-view.tsx
+|  |  +- search-filter.tsx
+|  |  +- avatar-upload.tsx
+|  |  +- image-upload.tsx
+|  |  +- ui/
+|  +- lib/
+|  |  +- auth/               # Session signing + server helpers
+|  |  +- convex/             # Server/client Convex wrappers
+|  |  +- storage/            # Convex upload helper
+|  |  +- types/
+|  |  +- utils.ts
+|  +- proxy.ts               # Next.js proxy entry point (route protection)
++- .env.example
++- next.config.ts
++- package.json
 ```
 
-## Database
+## Key Flows
 
-See [DATABASE.md](./DATABASE.md) for full schema, RLS policies, triggers, and indexes.
+### Authentication
 
-## Routing
+- Signup creates a profile row and auth user record in Convex.
+- Email verification tokens and password reset tokens are stored in Convex collections.
+- Login sets a signed JWT-based session cookie.
+- Optional legacy account claiming is available behind `ENABLE_ACCOUNT_CLAIM=true`.
 
-| Route | Status | Purpose |
-|-------|--------|---------|
-| `/` | Done | Home — item feed, newest first |
-| `/login` | Done | Sign in (email/password) |
-| `/signup` | Done | Sign up with custom fields |
-| `/signup-success` | Done | Email confirmation prompt |
-| `/reset-password` | Done | Request password reset email |
-| `/auth/confirm` | Done | Token exchange callback (email verify + reset) |
-| `/auth/update-password` | Done | Set new password after reset |
-| `/auth/error` | Done | Auth error display |
-| `/profiles` | Done | User profiles list (sorted by item count) |
-| `/profiles/[id]` | Done | Other user's profile + their items |
-| `/items/new` | Done | Create new item (with 20-item limit) |
-| `/items/[id]` | Done | Item detail (reserve, contact, chat, edit/delete) |
-| `/items/[id]/edit` | Done | Edit item (seller only) |
-| `/items/[id]/delete` | Done | Delete item confirmation (seller only) |
-| `/messages` | Done | Conversation list (unread counts, last message) |
-| `/messages/[id]` | Done | Conversation detail (real-time chat) |
-| `/profile` | Done | Own profile (view/edit, manage items & reservations) |
-| `/privacy` | Done | Privacy policy (GDPR) |
-| `/impressum` | Done | Legal notice (placeholder) |
-| `/api/account` | Done | Account deletion endpoint (DELETE) |
+### Marketplace
 
-### Route Protection (Middleware)
+- Feed data comes from `convex/items.ts`.
+- Search and filters are URL-driven and applied in the `items:listAvailable` query.
+- Item create/edit/delete flows use Convex mutations plus Convex Storage.
+- Reservations are stored in Convex and auto-expire via cron.
 
-- **Public routes** (no auth needed): `/login`, `/signup`, `/reset-password`, `/signup-success`, `/auth/confirm`, `/auth/error`, `/privacy`, `/impressum`
-- **Auth redirect** (authenticated users sent to `/`): `/login`, `/signup`, `/reset-password`, `/signup-success`
-- **Protected routes** (all others): redirect to `/login` if not authenticated
+### Messaging
+
+- One conversation per item/buyer pair.
+- Messages are stored in Convex and streamed to the UI via subscriptions.
+- Unread badge and read state are computed from Convex data.
+
+## Route Protection
+
+Public routes:
+- `/`
+- `/login`
+- `/signup`
+- `/claim-account`
+- `/reset-password`
+- `/signup-success`
+- `/auth/confirm`
+- `/auth/error`
+- `/privacy`
+- `/impressum`
+
+Auth redirect routes:
+- `/login`
+- `/signup`
+- `/claim-account`
+- `/reset-password`
+- `/signup-success`
+
+All other non-API routes require a valid session and redirect to `/login` when unauthenticated.
+
+## Related Documents
+
+- [TECH.md](./TECH.md)
+- [DATABASE.md](./DATABASE.md)
+- [PRODUCT_STATUS.md](./PRODUCT_STATUS.md)
+- [SEARCH_FEATURE.md](./SEARCH_FEATURE.md)

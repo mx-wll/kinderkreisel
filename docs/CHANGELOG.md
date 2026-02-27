@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2026-02-27
+
+### Changed
+- [routing] Migrated Next.js route protection entrypoint from `src/middleware.ts` to `src/proxy.ts`
+- [auth] Sanitized Resend failure logging in auth email routes and normalized reset-password email input
+- [ui] Replaced remaining raw profile-page `<img>` usage with `next/image`
+- [tooling] Scoped Figma capture script to non-production runtime only
+- [lint] Removed app-level lint warnings and ignored Convex generated files in ESLint
+- [docs] Updated architecture, tech, database, product status, search, and historical planning docs to reflect the current Convex-based code structure
+
 ## 2026-02-17
 
 ### Added
@@ -145,12 +155,6 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Project documentation structure (`docs/`)
-- Product Requirements (PRD.md)
-- Technical Specifications (TECH.md)
-- Database Design (DATABASE.md)
-- MVP Specification (MVP.md)
-- V1 Specification (V1.md)
-- V2 Specification (V2.md)
-- Environment variables template (.env.example)
-- Claude Code project config (CLAUDE.md)
-- Custom slash command: `/update-docs-and-commit`
+- Product documentation (`PRD.md`, `TECH.md`, `DATABASE.md`, `MVP.md`, `V1.md`, `V2.md`)
+- Environment variables template (`.env.example`)
+- Claude Code project config (`CLAUDE.md`)
