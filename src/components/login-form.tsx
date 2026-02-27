@@ -122,15 +122,7 @@ export function LoginForm({
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Passwort</Label>
-                  <Link
-                    href="/reset-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Passwort vergessen?
-                  </Link>
-                </div>
+                <Label htmlFor="password">Passwort</Label>
                 <Input
                   id="password"
                   type="password"
@@ -138,6 +130,12 @@ export function LoginForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <Link
+                  href="/reset-password"
+                  className="inline-block w-fit text-sm underline-offset-4 hover:underline"
+                >
+                  Passwort vergessen?
+                </Link>
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               {showResendVerification && (
