@@ -58,6 +58,7 @@ export async function GET(request: Request) {
     return response;
   } catch (error) {
     console.error("[auth/google/callback] failed", error);
-    return redirectTo("/login?error=google_failed", origin);
+    const reason = error instanceof Error ? error.message : "Google callback failed";
+    return redirectTo(`/login?error=google_failed&reason=${encodeURIComponent(reason)}`, origin);
   }
 }

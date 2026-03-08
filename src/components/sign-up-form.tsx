@@ -222,7 +222,7 @@ export function SignUpForm({
                 </Button>
               )}
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link href="/api/auth/google/start">Mit Google registrieren</Link>
+                <a href="/api/auth/google/start">Mit Google registrieren</a>
               </Button>
             </form>
           ) : (

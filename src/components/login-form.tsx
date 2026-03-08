@@ -36,7 +36,12 @@ export function LoginForm({
     }
     const oauthError = searchParams.get("error");
     if (oauthError === "google_failed" || oauthError === "google_state" || oauthError === "google_denied") {
-      toast.error("Google-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.");
+      const reason = searchParams.get("reason");
+      toast.error(
+        reason
+          ? `Google-Anmeldung ist fehlgeschlagen: ${reason}`
+          : "Google-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut."
+      );
     }
     if (oauthError === "google_config") {
       const reason = searchParams.get("reason");
@@ -207,7 +212,7 @@ export function LoginForm({
                 </Button>
               )}
               <Button type="button" variant="outline" className="w-full" asChild>
-                <Link href="/api/auth/google/start">Mit Google fortfahren</Link>
+                <a href="/api/auth/google/start">Mit Google fortfahren</a>
               </Button>
             </form>
           ) : (
