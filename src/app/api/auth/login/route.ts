@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   }
   if (!user.passwordHash) {
     return NextResponse.json(
-      { error: "Dieses Konto nutzt aktuell Google-Login. Bitte melde dich mit Google an." },
+      { error: "Dieses Konto nutzt aktuell E-Mail-Code oder Google. Bitte verwende keinen Passwort-Login." },
       { status: 401 }
     );
   }

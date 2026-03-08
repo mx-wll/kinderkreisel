@@ -343,6 +343,116 @@ export const createResetToken = mutation({
   },
 });
 
+export const createEmailLoginCode = mutation({
+  args: {
+    email: v.string(),
+    codeHash: v.string(),
+    name: v.optional(v.string()),
+    surname: v.optional(v.string()),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const existingCodes = await ctx.db
+      .query("emailLoginCodes")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .collect();
+
+    await Promise.all(
+      existingCodes
+        .filter((code) => !code.usedAt && code.expiresAt >= now)
+        .map((code) => ctx.db.patch(code._id, { usedAt: now }))
+    );
+
+    await ctx.db.insert("emailLoginCodes", {
+      email: args.email.toLowerCase(),
+      codeHash: args.codeHash,
+      name: args.name?.trim() || undefined,
+      surname: args.surname?.trim() || undefined,
+      expiresAt: args.expiresAt,
+      createdAt: now,
+    });
+
+    return { ok: true };
+  },
+});
+
+export const consumeEmailLoginCode = mutation({
+  args: {
+    email: v.string(),
+    codeHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const email = args.email.toLowerCase();
+    const codeRow = await ctx.db
+      .query("emailLoginCodes")
+      .withIndex("by_codeHash", (q) => q.eq("codeHash", args.codeHash))
+      .unique();
+    if (!codeRow || codeRow.email !== email) throw new Error("INVALID_CODE");
+    if (codeRow.usedAt) throw new Error("CODE_USED");
+    if (codeRow.expiresAt < Date.now()) throw new Error("CODE_EXPIRED");
+
+    await ctx.db.patch(codeRow._id, { usedAt: Date.now() });
+
+    const existingAuth = await ctx.db
+      .query("authUsers")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    if (existingAuth) {
+      await ctx.db.patch(existingAuth._id, {
+        emailVerified: true,
+        updatedAt: Date.now(),
+      });
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_legacy_id", (q) => q.eq("id", existingAuth.profileId))
+        .unique();
+      return {
+        profileId: existingAuth.profileId,
+        email: existingAuth.email,
+        needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+        createdAccount: false,
+      };
+    }
+
+    if (!codeRow.name?.trim()) throw new Error("SIGNUP_NAME_REQUIRED");
+
+    const now = Date.now();
+    const profileId = crypto.randomUUID();
+    await ctx.db.insert("profiles", {
+      id: profileId,
+      name: codeRow.name.trim(),
+      surname: codeRow.surname?.trim() || undefined,
+      zipCode: undefined,
+      phone: undefined,
+      addressLine1: undefined,
+      addressLine2: undefined,
+      phoneConsent: false,
+      emailNotifications: true,
+      onboardingCompletedAt: undefined,
+      lastMessageEmailAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert("authUsers", {
+      id: crypto.randomUUID(),
+      profileId,
+      email,
+      emailVerified: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      profileId,
+      email,
+      needsOnboarding: true,
+      createdAccount: true,
+    };
+  },
+});
+
 export const consumeResetToken = mutation({
   args: {
     tokenHash: v.string(),

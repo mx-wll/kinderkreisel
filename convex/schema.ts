@@ -6,6 +6,7 @@ export default defineSchema({
     id: v.string(), // legacy Supabase profile UUID (same as auth user id)
     name: v.string(),
     surname: v.optional(v.string()),
+    residency: v.optional(v.string()),
     zipCode: v.optional(v.string()),
     phone: v.optional(v.string()),
     addressLine1: v.optional(v.string()),
@@ -136,4 +137,16 @@ export default defineSchema({
   })
     .index("by_tokenHash", ["tokenHash"])
     .index("by_profileId", ["profileId"]),
+
+  emailLoginCodes: defineTable({
+    email: v.string(),
+    codeHash: v.string(),
+    name: v.optional(v.string()),
+    surname: v.optional(v.string()),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_codeHash", ["codeHash"]),
 });
