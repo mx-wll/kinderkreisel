@@ -8,6 +8,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(url);
   } catch (error) {
     console.error("[auth/google/start] failed to create authorization url", error);
-    return NextResponse.redirect(new URL("/login?error=google_config", origin));
+    const reason = error instanceof Error ? error.message : "Google configuration is missing";
+    return NextResponse.redirect(
+      new URL(`/login?error=google_config&reason=${encodeURIComponent(reason)}`, origin)
+    );
   }
 }

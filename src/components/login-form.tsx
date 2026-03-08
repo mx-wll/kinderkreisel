@@ -39,7 +39,12 @@ export function LoginForm({
       toast.error("Google-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.");
     }
     if (oauthError === "google_config") {
-      toast.error("Google-Anmeldung ist noch nicht vollständig konfiguriert.");
+      const reason = searchParams.get("reason");
+      toast.error(
+        reason
+          ? `Google-Anmeldung ist nicht konfiguriert: ${reason}`
+          : "Google-Anmeldung ist noch nicht vollständig konfiguriert."
+      );
     }
   }, [searchParams]);
 
