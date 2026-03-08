@@ -1,6 +1,6 @@
 # findln — Technical Requirements
 
-Last updated: 2026-02-27
+Last updated: 2026-03-08
 
 ## Stack
 
@@ -25,17 +25,24 @@ See `.env.example` for the canonical template.
 |----------|-------------|--------|
 | `CONVEX_DEPLOYMENT` | Convex deployment identifier | No |
 | `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL | Yes |
+| `APP_URL` | Base app URL used for auth callbacks | No |
 | `AUTH_SECRET` | Signing secret for the session JWT | No |
 | `ENABLE_ACCOUNT_CLAIM` | Enables legacy profile claiming flow | No |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | No |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | No |
 | `RESEND_API_KEY` | Resend API key | No |
 | `RESEND_FROM_EMAIL` | Sender identity for Resend emails | No |
 
 ## Authentication
 
 - Email/password signup and login are handled by app route handlers under `/api/auth/*`.
+- Google OAuth is supported through app route handlers and mapped into the same local session model.
 - Passwords are hashed with `bcryptjs`.
 - Sessions are signed with `jose` and stored in the `kk_session` HTTP-only cookie.
 - Session lifetime is 30 days.
+- Email signup collects only name, email, and password.
+- After login or signup, users without a ZIP code are redirected to `/onboarding`.
+- ZIP code is mandatory to complete onboarding; phone number and address are optional profile fields.
 - Email verification is required in production when Resend is configured.
 - In non-production environments without Resend configured, signup auto-verifies accounts.
 - Password reset uses one-time tokens stored in Convex.

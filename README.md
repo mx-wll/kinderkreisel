@@ -1,6 +1,6 @@
 # findln
 
-Mobile-first local marketplace for children's items in and around zip code `83623`.
+Mobile-first local marketplace for children's items with a local-neighborhood focus.
 
 ## Current Stack
 
@@ -14,7 +14,9 @@ Mobile-first local marketplace for children's items in and around zip code `8362
 ## Current Product Scope
 
 - Email/password signup and login
+- Google login
 - Email verification and password reset
+- Onboarding with mandatory ZIP code and optional phone/address
 - Optional legacy account claim flow
 - Item feed with search and filters
 - Item create/edit/delete
@@ -37,14 +39,18 @@ Copy `.env.example` into your local env setup and provide values for:
 
 - `CONVEX_DEPLOYMENT`
 - `NEXT_PUBLIC_CONVEX_URL`
+- `APP_URL`
 - `AUTH_SECRET`
 - `ENABLE_ACCOUNT_CLAIM`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
 - `RESEND_API_KEY`
 - `RESEND_FROM_EMAIL`
 
 Notes:
 - In production, `RESEND_API_KEY` should be configured so signup verification works.
 - In non-production, signup auto-verifies when Resend is not configured.
+- For Google login, add `http://localhost:3000/api/auth/google/callback` and your production callback URL in Google Cloud OAuth credentials.
 
 ## Local Development
 
@@ -89,6 +95,9 @@ pnpm convex:deploy
 - Session cookie name: `kk_session`
 - Session signing: `jose`
 - Password hashing: `bcryptjs`
+- Email signup asks only for name, email, and password
+- After auth, onboarding requires a ZIP code before app access is granted
+- Phone number and address are optional profile fields
 - Public routes and redirects are enforced in `src/proxy.ts`
 
 ## Storage Model

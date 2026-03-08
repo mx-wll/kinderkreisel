@@ -1,22 +1,25 @@
 # Product Status
 
-Last updated: 2026-02-27
+Last updated: 2026-03-08
 
 ## Current Runtime
 
 ### Authentication
 - [x] Email/password signup
+- [x] Google login
 - [x] Email verification via Resend
 - [x] Resend verification email action from login form
 - [x] Password reset request + confirm flow
 - [x] Sign in / sign out
-- [x] Fixed zip code `83623` applied on signup
+- [x] Minimal signup with name, email, and password
+- [x] ZIP-code onboarding enforced after auth
 - [x] Optional legacy account claim flow (`/claim-account`)
 
 ### User Profiles
 - [x] Profile creation during signup
+- [x] Onboarding page for ZIP code, optional phone number, and optional address
 - [x] View own profile
-- [x] Edit profile (name, surname, residency, phone)
+- [x] Edit profile (name, surname, ZIP, optional phone, optional address)
 - [x] Toggle email notifications on profile
 - [x] Upload / change / remove avatar
 - [x] View other user profiles
@@ -62,7 +65,7 @@ Last updated: 2026-02-27
 - [ ] Message digest email sending logic (cron exists, handler is still a placeholder)
 - [ ] Reservation notification emails beyond auth emails
 - [ ] Dedicated browse page separate from `/`
-- [ ] Social login
+- [ ] Additional social login providers beyond Google
 - [ ] Advanced search (ranking, typo tolerance, autocomplete)
 
 ## Notes

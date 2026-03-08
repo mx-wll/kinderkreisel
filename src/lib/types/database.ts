@@ -1,13 +1,15 @@
 export type Profile = {
   id: string;
   name: string;
-  surname: string;
-  residency: string;
-  zip_code: string;
-  phone: string;
+  surname: string | null;
+  zip_code: string | null;
+  phone: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
   avatar_url: string | null;
   phone_consent: boolean;
   email_notifications: boolean;
+  onboarding_completed_at: string | null;
   last_message_email_at: string;
   created_at: string;
   updated_at: string;

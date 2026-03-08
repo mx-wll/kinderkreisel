@@ -7,13 +7,15 @@ export default async function ProfilesPage() {
     Array<{
       id: string;
       name: string;
-      surname: string;
-      residency: string;
-      zipCode: string;
-      phone: string;
+      surname?: string;
+      zipCode?: string;
+      phone?: string;
+      addressLine1?: string;
+      addressLine2?: string;
       avatarUrl?: string;
       phoneConsent: boolean;
       emailNotifications: boolean;
+      onboardingCompletedAt?: number;
       lastMessageEmailAt: number;
       createdAt: number;
       updatedAt: number;
@@ -27,13 +29,15 @@ export default async function ProfilesPage() {
   const typedProfiles: ProfileWithItemCount[] = profiles.map((p) => ({
     id: p.id,
     name: p.name,
-    surname: p.surname,
-    residency: p.residency,
-    zip_code: p.zipCode,
-    phone: p.phone,
+    surname: p.surname ?? null,
+    zip_code: p.zipCode ?? null,
+    phone: p.phone ?? null,
+    address_line_1: p.addressLine1 ?? null,
+    address_line_2: p.addressLine2 ?? null,
     avatar_url: p.avatarUrl ?? null,
     phone_consent: p.phoneConsent,
     email_notifications: p.emailNotifications,
+    onboarding_completed_at: p.onboardingCompletedAt ? new Date(p.onboardingCompletedAt).toISOString() : null,
     last_message_email_at: new Date(p.lastMessageEmailAt).toISOString(),
     created_at: new Date(p.createdAt).toISOString(),
     updated_at: new Date(p.updatedAt).toISOString(),

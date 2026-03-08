@@ -1,7 +1,7 @@
 import { compare } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { convexQuery } from "@/lib/convex/server";
-import { AUTH_COOKIE_NAME, signSession } from "@/lib/auth/session";
+import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -15,12 +15,19 @@ export async function POST(request: Request) {
   const user = await convexQuery<{
     profileId: string;
     email: string;
-    passwordHash: string;
+    passwordHash?: string;
     emailVerified: boolean;
+    needsOnboarding: boolean;
   } | null>("auth:getAuthUserByEmail", { email: body.email.toLowerCase() });
 
   if (!user) {
     return NextResponse.json({ error: "E-Mail oder Passwort stimmen nicht." }, { status: 401 });
+  }
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "Dieses Konto nutzt aktuell Google-Login. Bitte melde dich mit Google an." },
+      { status: 401 }
+    );
   }
 
   const ok = await compare(body.password, user.passwordHash);
@@ -37,14 +44,9 @@ export async function POST(request: Request) {
   const token = await signSession({
     profileId: user.profileId,
     email: user.email,
+    needsOnboarding: user.needsOnboarding,
   });
   const response = NextResponse.json({ success: true });
-  response.cookies.set(AUTH_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
   return response;
 }

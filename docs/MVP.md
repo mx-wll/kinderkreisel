@@ -1,6 +1,6 @@
 # findln — MVP Specification
 
-Last updated: 2026-02-27
+Last updated: 2026-03-08
 
 ## Goal
 
@@ -10,13 +10,15 @@ Deliver a simple local marketplace for children's items where families can sign 
 
 ### Authentication
 - Email/password signup and login
+- Google login
 - Email verification
 - Password reset
 - Session-based route protection
 
 ### Profiles
 - Basic profile created at signup
-- Editable name, surname, residency, phone number
+- Onboarding with mandatory ZIP code and optional phone/address
+- Editable name, surname, ZIP code, phone number, and address
 - Avatar upload
 - Public profile pages
 
@@ -48,7 +50,7 @@ Deliver a simple local marketplace for children's items where families can sign 
 - Payments
 - Shipping
 - Multi-language support
-- Social login
+- Additional social login providers beyond Google
 - Advanced search relevance features
 
 ## Implementation Note

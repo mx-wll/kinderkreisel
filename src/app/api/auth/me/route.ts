@@ -10,6 +10,7 @@ export async function GET() {
     user: {
       id: session.profileId,
       email: session.email,
+      needsOnboarding: session.needsOnboarding,
     },
   });
 }

@@ -24,8 +24,10 @@ export const update = mutation({
     id: v.string(),
     name: v.optional(v.string()),
     surname: v.optional(v.string()),
-    residency: v.optional(v.string()),
+    zipCode: v.optional(v.string()),
     phone: v.optional(v.string()),
+    addressLine1: v.optional(v.string()),
+    addressLine2: v.optional(v.string()),
     avatarUrl: v.optional(v.union(v.string(), v.null())),
     avatarStorageId: v.optional(v.union(v.string(), v.null())),
     emailNotifications: v.optional(v.boolean()),
@@ -38,17 +40,25 @@ export const update = mutation({
     if (!profile) throw new Error("Profile not found");
 
     const oldAvatarStorageId = profile.avatarStorageId;
+    const nextZipCode = args.zipCode !== undefined ? args.zipCode.trim() : (profile.zipCode ?? "");
+    if (!nextZipCode) throw new Error("ZIP_CODE_REQUIRED");
+
     await ctx.db.patch(profile._id, {
       name: args.name ?? profile.name,
-      surname: args.surname ?? profile.surname,
-      residency: args.residency ?? profile.residency,
-      phone: args.phone ?? profile.phone,
+      surname: args.surname === undefined ? profile.surname : args.surname.trim() || undefined,
+      zipCode: nextZipCode,
+      phone: args.phone === undefined ? profile.phone : args.phone.trim() || undefined,
+      addressLine1:
+        args.addressLine1 === undefined ? profile.addressLine1 : args.addressLine1.trim() || undefined,
+      addressLine2:
+        args.addressLine2 === undefined ? profile.addressLine2 : args.addressLine2.trim() || undefined,
       avatarUrl: args.avatarUrl === undefined ? profile.avatarUrl : args.avatarUrl ?? undefined,
       avatarStorageId:
         args.avatarStorageId === undefined
           ? profile.avatarStorageId
           : args.avatarStorageId ?? undefined,
       emailNotifications: args.emailNotifications ?? profile.emailNotifications,
+      onboardingCompletedAt: profile.onboardingCompletedAt ?? Date.now(),
       updatedAt: Date.now(),
     });
     return { ok: true, oldAvatarStorageId };

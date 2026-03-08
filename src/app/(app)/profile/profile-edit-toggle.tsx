@@ -19,10 +19,16 @@ export function ProfileEditToggle({ profile }: { profile: Profile }) {
     <div>
       <div className="space-y-1">
         <p className="text-lg font-medium">
-          {profile.name} {profile.surname}
+          {profile.name} {profile.surname ?? ""}
         </p>
-        <p className="text-sm text-muted-foreground">{profile.residency}</p>
-        <p className="text-sm text-muted-foreground">{profile.phone}</p>
+        <p className="text-sm text-muted-foreground">PLZ: {profile.zip_code ?? "Fehlt"}</p>
+        {profile.phone && <p className="text-sm text-muted-foreground">{profile.phone}</p>}
+        {profile.address_line_1 && (
+          <p className="text-sm text-muted-foreground">
+            {profile.address_line_1}
+            {profile.address_line_2 ? `, ${profile.address_line_2}` : ""}
+          </p>
+        )}
         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
           {profile.email_notifications ? (
             <><Bell className="h-3.5 w-3.5" /> E-Mail-Benachrichtigungen: An</>

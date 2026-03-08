@@ -5,14 +5,16 @@ export default defineSchema({
   profiles: defineTable({
     id: v.string(), // legacy Supabase profile UUID (same as auth user id)
     name: v.string(),
-    surname: v.string(),
-    residency: v.string(),
-    zipCode: v.string(),
-    phone: v.string(),
+    surname: v.optional(v.string()),
+    zipCode: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    addressLine1: v.optional(v.string()),
+    addressLine2: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     avatarStorageId: v.optional(v.string()),
     phoneConsent: v.boolean(),
     emailNotifications: v.boolean(),
+    onboardingCompletedAt: v.optional(v.number()),
     lastMessageEmailAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -93,12 +95,25 @@ export default defineSchema({
     id: v.string(),
     profileId: v.string(),
     email: v.string(),
-    passwordHash: v.string(),
+    passwordHash: v.optional(v.string()),
     emailVerified: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_auth_id", ["id"])
+    .index("by_profileId", ["profileId"])
+    .index("by_email", ["email"]),
+
+  authIdentities: defineTable({
+    profileId: v.string(),
+    provider: v.string(),
+    providerUserId: v.string(),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_provider_providerUserId", ["provider", "providerUserId"])
     .index("by_profileId", ["profileId"])
     .index("by_email", ["email"]),
 

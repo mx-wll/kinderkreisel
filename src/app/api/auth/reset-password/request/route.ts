@@ -1,29 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { convexMutation, convexQuery } from "@/lib/convex/server";
-
-async function sendResetMail(to: string, link: string) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return;
-  const from = process.env.RESEND_FROM_EMAIL || "findln <onboarding@resend.dev>";
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Passwort zurücksetzen",
-      html: `<p>Setze dein Passwort zurück:</p><p><a href="${link}">${link}</a></p>`,
-    }),
-  });
-  if (!res.ok) {
-    await res.text();
-    console.error("[auth/reset-password] resend send failed", { status: res.status });
-  }
-}
+import { ResendSendError, sendResendEmail } from "@/lib/email/resend";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { email: string };
@@ -45,7 +23,21 @@ export async function POST(request: Request) {
     });
     const origin = new URL(request.url).origin;
     const link = `${origin}/auth/update-password?token=${token}`;
-    await sendResetMail(authUser.email, link);
+    try {
+      await sendResendEmail({
+        to: authUser.email,
+        subject: "Passwort zurücksetzen",
+        html: `<p>Setze dein Passwort zurück:</p><p><a href="${link}">${link}</a></p>`,
+      });
+    } catch (error) {
+      if (error instanceof ResendSendError) {
+        console.error("[auth/reset-password] resend send failed", {
+          status: error.status,
+          code: error.message,
+          detail: error.detail,
+        });
+      }
+    }
   }
 
   return NextResponse.json({ success: true });

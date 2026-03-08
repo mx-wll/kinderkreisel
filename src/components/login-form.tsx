@@ -34,6 +34,13 @@ export function LoginForm({
     if (searchParams.get("verified") === "1") {
       toast.success("E-Mail bestätigt! Du kannst dich jetzt einloggen.");
     }
+    const oauthError = searchParams.get("error");
+    if (oauthError === "google_failed" || oauthError === "google_state" || oauthError === "google_denied") {
+      toast.error("Google-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.");
+    }
+    if (oauthError === "google_config") {
+      toast.error("Google-Anmeldung ist noch nicht vollständig konfiguriert.");
+    }
   }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -151,6 +158,9 @@ export function LoginForm({
               )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Wird eingeloggt..." : "Einloggen"}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <Link href="/api/auth/google/start">Mit Google fortfahren</Link>
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">

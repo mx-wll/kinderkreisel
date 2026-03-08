@@ -24,9 +24,9 @@ export function ProfileCard({ profile }: { profile: ProfileWithItemCount }) {
       </Avatar>
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">
-          {profile.name} {profile.surname}
+          {profile.name} {profile.surname ?? ""}
         </p>
-        <p className="text-sm text-muted-foreground">{profile.residency}</p>
+        {profile.zip_code && <p className="text-sm text-muted-foreground">PLZ {profile.zip_code}</p>}
       </div>
       <Badge variant="secondary">
         {profile.item_count} {profile.item_count === 1 ? "Artikel" : "Artikel"}

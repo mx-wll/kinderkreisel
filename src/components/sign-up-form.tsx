@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -15,28 +16,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import Link from "next/link";
 
 export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
     repeatPassword: "",
-    name: "",
-    surname: "",
-    residency: "",
-    phone: "",
   });
-  const [phoneConsent, setPhoneConsent] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const updateField = (field: string, value: string) => {
+  const updateField = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -62,22 +58,21 @@ export function SignUpForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: formData.name,
           email: formData.email,
           password: formData.password,
-          name: formData.name,
-          surname: formData.surname,
-          residency: formData.residency,
-          phone: formData.phone,
-          phoneConsent,
         }),
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error || "Registrierung fehlgeschlagen.");
       }
-      const body = (await response.json().catch(() => ({}))) as { autoVerified?: boolean };
+      const body = (await response.json().catch(() => ({}))) as {
+        autoVerified?: boolean;
+        redirectTo?: string;
+      };
       if (body.autoVerified) {
-        router.push("/login?verified=1");
+        router.push(body.redirectTo || "/onboarding");
       } else {
         router.push("/signup-success");
       }
@@ -99,35 +94,22 @@ export function SignUpForm({
         <CardHeader>
           <CardTitle className="text-2xl">Konto erstellen</CardTitle>
           <CardDescription>
-            Willkommen bei findln! Registrier dich und leg los.
+            Starte mit Name, E-Mail und Passwort. Alles Weitere kommt danach.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Vorname</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Max"
-                    required
-                    value={formData.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="surname">Nachname</Label>
-                  <Input
-                    id="surname"
-                    type="text"
-                    placeholder="Mustermann"
-                    required
-                    value={formData.surname}
-                    onChange={(e) => updateField("surname", e.target.value)}
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Max Mustermann"
+                  required
+                  value={formData.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                />
               </div>
 
               <div className="grid gap-2">
@@ -139,42 +121,6 @@ export function SignUpForm({
                   required
                   value={formData.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="residency">Ortsteil</Label>
-                  <Input
-                    id="residency"
-                    type="text"
-                    placeholder="z.B. Hauroth"
-                    required
-                    value={formData.residency}
-                    onChange={(e) => updateField("residency", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="zip_code">PLZ</Label>
-                  <Input
-                    id="zip_code"
-                    type="text"
-                    value="83623"
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Telefonnummer</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+49 171 1234567"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => updateField("phone", e.target.value)}
                 />
               </div>
 
@@ -196,48 +142,20 @@ export function SignUpForm({
                   type="password"
                   required
                   value={formData.repeatPassword}
-                  onChange={(e) =>
-                    updateField("repeatPassword", e.target.value)
-                  }
+                  onChange={(e) => updateField("repeatPassword", e.target.value)}
                 />
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="phone-consent"
-                  checked={phoneConsent}
-                  onCheckedChange={(checked) =>
-                    setPhoneConsent(checked === true)
-                  }
-                />
-                <Label
-                  htmlFor="phone-consent"
-                  className="text-sm leading-snug font-normal"
-                >
-                  Meine Telefonnummer darf bei einer Reservierung an
-                  Interessenten weitergegeben werden.
-                </Label>
               </div>
 
               <div className="flex items-start space-x-2">
                 <Checkbox
                   id="privacy-consent"
                   checked={privacyConsent}
-                  onCheckedChange={(checked) =>
-                    setPrivacyConsent(checked === true)
-                  }
+                  onCheckedChange={(checked) => setPrivacyConsent(checked === true)}
                   required
                 />
-                <Label
-                  htmlFor="privacy-consent"
-                  className="text-sm leading-snug font-normal"
-                >
+                <Label htmlFor="privacy-consent" className="text-sm leading-snug font-normal">
                   Ich stimme der{" "}
-                  <Link
-                    href="/privacy"
-                    className="underline underline-offset-4"
-                    target="_blank"
-                  >
+                  <Link href="/privacy" className="underline underline-offset-4" target="_blank">
                     Datenschutzerklärung
                   </Link>{" "}
                   zu.
@@ -248,6 +166,9 @@ export function SignUpForm({
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Wird erstellt..." : "Registrieren"}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <Link href="/api/auth/google/start">Mit Google registrieren</Link>
               </Button>
             </div>
 

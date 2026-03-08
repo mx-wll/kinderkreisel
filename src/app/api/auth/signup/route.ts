@@ -2,46 +2,18 @@ import { hash } from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
-
-function createResendSendFailedError(status: number) {
-  return new Error(`RESEND_SEND_FAILED:${status}`);
-}
-
-async function sendVerificationMail(to: string, link: string) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("RESEND_NOT_CONFIGURED");
-  const from = process.env.RESEND_FROM_EMAIL || "findln <onboarding@resend.dev>";
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Bitte bestätige deine E-Mail",
-      html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
-    }),
-  });
-  if (!res.ok) {
-    await res.text();
-    throw createResendSendFailedError(res.status);
-  }
-}
+import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
+import { ResendSendError, sendResendEmail } from "@/lib/email/resend";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     email: string;
     password: string;
     name: string;
-    surname: string;
-    residency: string;
-    phone: string;
-    phoneConsent: boolean;
+    surname?: string;
   };
 
-  if (!body.email || !body.password || !body.name || !body.surname || !body.residency || !body.phone) {
+  if (!body.email || !body.password || !body.name) {
     return NextResponse.json({ error: "Ungültige Eingaben." }, { status: 400 });
   }
   if (body.password.length < 8) {
@@ -50,7 +22,8 @@ export async function POST(request: Request) {
 
   try {
     const resendConfigured = Boolean(process.env.RESEND_API_KEY);
-    if (process.env.NODE_ENV === "production" && !resendConfigured) {
+    const resendFromConfigured = Boolean(process.env.RESEND_FROM_EMAIL?.trim());
+    if (process.env.NODE_ENV === "production" && (!resendConfigured || !resendFromConfigured)) {
       return NextResponse.json(
         { error: "E-Mail-Versand ist aktuell nicht konfiguriert. Bitte kontaktiere den Support." },
         { status: 503 }
@@ -58,21 +31,25 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hash(body.password, 12);
-    const created = await convexMutation<{ profileId: string; email: string }>("auth:createUser", {
+    const created = await convexMutation<{ profileId: string; email: string; needsOnboarding: boolean }>("auth:createUser", {
       email: body.email,
       passwordHash,
       name: body.name,
       surname: body.surname,
-      residency: body.residency,
-      phone: body.phone,
-      phoneConsent: body.phoneConsent,
     });
 
     if (!resendConfigured) {
       await convexMutation("auth:markEmailVerified", {
         profileId: created.profileId,
       });
-      return NextResponse.json({ success: true, autoVerified: true });
+      const token = await signSession({
+        profileId: created.profileId,
+        email: created.email,
+        needsOnboarding: created.needsOnboarding,
+      });
+      const response = NextResponse.json({ success: true, autoVerified: true, redirectTo: "/onboarding" });
+      response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
+      return response;
     }
 
     const token = randomBytes(32).toString("hex");
@@ -84,7 +61,11 @@ export async function POST(request: Request) {
     });
     const origin = new URL(request.url).origin;
     const link = `${origin}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
-    await sendVerificationMail(created.email, link);
+    await sendResendEmail({
+      to: created.email,
+      subject: "Bitte bestätige deine E-Mail",
+      html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -94,15 +75,22 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
-    if (error instanceof Error && error.message.includes("RESEND_NOT_CONFIGURED")) {
+    if (
+      error instanceof ResendSendError &&
+      ["RESEND_NOT_CONFIGURED", "RESEND_FROM_EMAIL_MISSING", "RESEND_FROM_EMAIL_INVALID"].includes(
+        error.message
+      )
+    ) {
       return NextResponse.json(
         { error: "Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuche es später erneut." },
         { status: 503 }
       );
     }
-    if (error instanceof Error && error.message.includes("RESEND_SEND_FAILED")) {
-      const [, status] = error.message.split(":");
-      console.error("[auth/signup] resend send failed", { status });
+    if (error instanceof ResendSendError && error.message.startsWith("RESEND_SEND_FAILED:")) {
+      console.error("[auth/signup] resend send failed", {
+        status: error.status,
+        detail: error.detail,
+      });
       return NextResponse.json(
         { error: "Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuche es später erneut." },
         { status: 502 }

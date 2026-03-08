@@ -51,7 +51,7 @@ export default async function ItemDetailPage({
       id: string;
       name: string;
       avatarUrl?: string;
-      phone: string;
+      phone?: string;
     } | null>("profiles:getById", { id: item.sellerId });
     if (!seller) notFound();
 
@@ -82,7 +82,7 @@ export default async function ItemDetailPage({
         id: seller.id,
         name: seller.name,
         avatar_url: seller.avatarUrl ?? null,
-        phone: seller.phone,
+        phone: seller.phone ?? null,
       },
     };
 
@@ -216,20 +216,26 @@ export default async function ItemDetailPage({
                 <p className="text-sm text-muted-foreground">
                   Kontaktiere den Verkäufer, um die Abholung zu vereinbaren:
                 </p>
-                <div className="mt-3 flex gap-3">
-                  <Button asChild variant="outline" className="flex-1">
-                    <a href={`tel:${typedItem.seller.phone}`}>
-                      <Phone className="mr-2 h-4 w-4" />
-                      Anrufen
-                    </a>
-                  </Button>
-                  <Button asChild className="flex-1">
-                    <a href={whatsappUrl(typedItem.seller.phone)} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      WhatsApp
-                    </a>
-                  </Button>
-                </div>
+                {typedItem.seller.phone ? (
+                  <div className="mt-3 flex gap-3">
+                    <Button asChild variant="outline" className="flex-1">
+                      <a href={`tel:${typedItem.seller.phone}`}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        Anrufen
+                      </a>
+                    </Button>
+                    <Button asChild className="flex-1">
+                      <a href={whatsappUrl(typedItem.seller.phone)} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Der Verkäufer hat noch keine Telefonnummer hinterlegt. Nutze den Chat für die Abholung.
+                  </p>
+                )}
                 <CancelReservationButton reservationId={typedReservation.id} itemId={id} />
               </div>
             )}

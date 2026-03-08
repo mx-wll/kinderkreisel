@@ -1,7 +1,7 @@
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
-import { AUTH_COOKIE_NAME, signSession } from "@/lib/auth/session";
+import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const enabled = process.env.ENABLE_ACCOUNT_CLAIM === "true";
@@ -14,11 +14,10 @@ export async function POST(request: Request) {
     password: string;
     name: string;
     surname: string;
-    residency: string;
     phone: string;
   };
 
-  if (!body.email || !body.password || !body.name || !body.surname || !body.residency || !body.phone) {
+  if (!body.email || !body.password || !body.name || !body.surname || !body.phone) {
     return NextResponse.json({ error: "Ungültige Eingaben." }, { status: 400 });
   }
   if (body.password.length < 8) {
@@ -27,28 +26,22 @@ export async function POST(request: Request) {
 
   try {
     const passwordHash = await hash(body.password, 12);
-    const claimed = await convexMutation<{ profileId: string; email: string }>("auth:claimLegacyProfile", {
+    const claimed = await convexMutation<{ profileId: string; email: string; needsOnboarding: boolean }>("auth:claimLegacyProfile", {
       email: body.email,
       passwordHash,
       name: body.name,
       surname: body.surname,
-      residency: body.residency,
       phone: body.phone,
     });
 
     const token = await signSession({
       profileId: claimed.profileId,
       email: claimed.email,
+      needsOnboarding: claimed.needsOnboarding,
     });
 
     const response = NextResponse.json({ success: true });
-    response.cookies.set(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
     return response;
   } catch (error) {
     if (error instanceof Error) {

@@ -15,6 +15,7 @@ const PUBLIC_ROUTES = [
 ];
 
 const AUTH_ROUTES = ["/login", "/signup", "/claim-account", "/reset-password", "/signup-success"];
+const ONBOARDING_ROUTE = "/onboarding";
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -33,6 +34,18 @@ export async function proxy(request: NextRequest) {
   }
 
   if (session && isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  if (session?.needsOnboarding && !pathname.startsWith(ONBOARDING_ROUTE)) {
+    const url = request.nextUrl.clone();
+    url.pathname = ONBOARDING_ROUTE;
+    return NextResponse.redirect(url);
+  }
+
+  if (session && !session.needsOnboarding && pathname.startsWith(ONBOARDING_ROUTE)) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

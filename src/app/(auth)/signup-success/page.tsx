@@ -17,7 +17,8 @@ export default function SignUpSuccessPage() {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Wir haben dir eine E-Mail geschickt. Klick auf den Link darin, um
-          dein Konto zu bestätigen — dann kann&apos;s losgehen!
+          dein Konto zu bestätigen. Danach führen wir dich direkt durch die
+          kurze Einrichtung mit deiner PLZ und optionalen Kontaktdaten.
         </p>
         <p className="text-center text-sm">
           <Link href="/login" className="underline underline-offset-4">

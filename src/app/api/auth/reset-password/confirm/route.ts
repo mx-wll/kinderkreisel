@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
-import { AUTH_COOKIE_NAME, signSession } from "@/lib/auth/session";
+import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { token: string; password: string };
@@ -17,22 +17,17 @@ export async function POST(request: Request) {
   const passwordHash = await hash(body.password, 12);
 
   try {
-    const result = await convexMutation<{ profileId: string; email: string }>("auth:consumeResetToken", {
+    const result = await convexMutation<{ profileId: string; email: string; needsOnboarding: boolean }>("auth:consumeResetToken", {
       tokenHash,
       passwordHash,
     });
     const token = await signSession({
       profileId: result.profileId,
       email: result.email,
+      needsOnboarding: result.needsOnboarding,
     });
     const response = NextResponse.json({ success: true });
-    response.cookies.set(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
+    response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
     return response;
   } catch {
     return NextResponse.json({ error: "Ungültiger oder abgelaufener Link." }, { status: 400 });

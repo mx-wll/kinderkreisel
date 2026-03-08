@@ -20,7 +20,6 @@ export function ClaimAccountForm({
     repeatPassword: "",
     name: "",
     surname: "",
-    residency: "",
     phone: "",
   });
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +48,6 @@ export function ClaimAccountForm({
           password: formData.password,
           name: formData.name,
           surname: formData.surname,
-          residency: formData.residency,
           phone: formData.phone,
         }),
       });
@@ -86,10 +84,6 @@ export function ClaimAccountForm({
                 <Label htmlFor="surname">Nachname</Label>
                 <Input id="surname" required value={formData.surname} onChange={(e) => updateField("surname", e.target.value)} />
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="residency">Ortsteil</Label>
-              <Input id="residency" required value={formData.residency} onChange={(e) => updateField("residency", e.target.value)} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">Telefonnummer</Label>

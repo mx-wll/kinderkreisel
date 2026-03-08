@@ -38,7 +38,7 @@ export default async function MyProfilePage() {
   let typedReservations: Array<
     Reservation & {
       item: Item & {
-        seller: { id: string; name: string; phone: string; avatar_url: string | null };
+        seller: { id: string; name: string; phone: string | null; avatar_url: string | null };
       };
     }
   > = [];
@@ -47,13 +47,15 @@ export default async function MyProfilePage() {
     const profile = await convexQuery<{
       id: string;
       name: string;
-      surname: string;
-      residency: string;
-      zipCode: string;
-      phone: string;
+      surname?: string;
+      zipCode?: string;
+      phone?: string;
+      addressLine1?: string;
+      addressLine2?: string;
       avatarUrl?: string;
       phoneConsent: boolean;
       emailNotifications: boolean;
+      onboardingCompletedAt?: number;
       lastMessageEmailAt: number;
       createdAt: number;
       updatedAt: number;
@@ -63,13 +65,17 @@ export default async function MyProfilePage() {
       ? {
           id: profile.id,
           name: profile.name,
-          surname: profile.surname,
-          residency: profile.residency,
-          zip_code: profile.zipCode,
-          phone: profile.phone,
+          surname: profile.surname ?? null,
+          zip_code: profile.zipCode ?? null,
+          phone: profile.phone ?? null,
+          address_line_1: profile.addressLine1 ?? null,
+          address_line_2: profile.addressLine2 ?? null,
           avatar_url: profile.avatarUrl ?? null,
           phone_consent: profile.phoneConsent,
           email_notifications: profile.emailNotifications,
+          onboarding_completed_at: profile.onboardingCompletedAt
+            ? new Date(profile.onboardingCompletedAt).toISOString()
+            : null,
           last_message_email_at: new Date(profile.lastMessageEmailAt).toISOString(),
           created_at: new Date(profile.createdAt).toISOString(),
           updated_at: new Date(profile.updatedAt).toISOString(),
@@ -167,7 +173,7 @@ export default async function MyProfilePage() {
           const seller = await convexQuery<{
             id: string;
             name: string;
-            phone: string;
+            phone?: string;
             avatarUrl?: string;
           } | null>("profiles:getById", { id: item.sellerId });
           if (!seller) return null;
@@ -192,13 +198,13 @@ export default async function MyProfilePage() {
               status: item.status,
               created_at: new Date(item.createdAt).toISOString(),
               updated_at: new Date(item.updatedAt).toISOString(),
-              seller: {
-                id: seller.id,
-                name: seller.name,
-                phone: seller.phone,
-                avatar_url: seller.avatarUrl ?? null,
+                seller: {
+                  id: seller.id,
+                  name: seller.name,
+                  phone: seller.phone ?? null,
+                  avatar_url: seller.avatarUrl ?? null,
+                },
               },
-            },
           };
         })
       )
@@ -421,24 +427,30 @@ export default async function MyProfilePage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <a href={`tel:${res.item.seller.phone}`}>
-                        <Phone className="mr-2 h-4 w-4" />
-                        Anrufen
-                      </a>
-                    </Button>
-                    <Button asChild size="sm" className="flex-1">
-                      <a
-                        href={whatsappUrl(res.item.seller.phone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        WhatsApp
-                      </a>
-                    </Button>
-                  </div>
+                  {res.item.seller.phone ? (
+                    <div className="flex gap-3">
+                      <Button asChild variant="outline" size="sm" className="flex-1">
+                        <a href={`tel:${res.item.seller.phone}`}>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Anrufen
+                        </a>
+                      </Button>
+                      <Button asChild size="sm" className="flex-1">
+                        <a
+                          href={whatsappUrl(res.item.seller.phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          WhatsApp
+                        </a>
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Dieser Verkäufer hat noch keine Telefonnummer hinterlegt. Schreib am besten im Chat.
+                    </p>
+                  )}
                 </div>
               );
             })}

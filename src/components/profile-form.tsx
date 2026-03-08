@@ -20,16 +20,22 @@ export function ProfileForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(profile.name);
-  const [surname, setSurname] = useState(profile.surname);
-  const [residency, setResidency] = useState(profile.residency);
-  const [phone, setPhone] = useState(profile.phone);
+  const [surname, setSurname] = useState(profile.surname ?? "");
+  const [zipCode, setZipCode] = useState(profile.zip_code ?? "");
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const [addressLine1, setAddressLine1] = useState(profile.address_line_1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(profile.address_line_2 ?? "");
   const [emailNotifications, setEmailNotifications] = useState(profile.email_notifications);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!name.trim() || !surname.trim()) {
-      toast.error("Name und Nachname sind Pflichtfelder.");
+    if (!name.trim()) {
+      toast.error("Name ist ein Pflichtfeld.");
+      return;
+    }
+    if (!zipCode.trim()) {
+      toast.error("Bitte hinterlege deine PLZ.");
       return;
     }
 
@@ -39,12 +45,18 @@ export function ProfileForm({
           id: profile.id,
           name: name.trim(),
           surname: surname.trim(),
-          residency: residency.trim(),
+          zipCode: zipCode.trim(),
           phone: phone.trim(),
+          addressLine1: addressLine1.trim(),
+          addressLine2: addressLine2.trim(),
           emailNotifications,
         });
-      } catch {
-        toast.error("Profil konnte nicht aktualisiert werden.");
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("ZIP_CODE_REQUIRED")) {
+          toast.error("Bitte hinterlege deine PLZ.");
+        } else {
+          toast.error("Profil konnte nicht aktualisiert werden.");
+        }
         return;
       }
 
@@ -57,39 +69,42 @@ export function ProfileForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Vorname</Label>
-        <Input
-          id="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="surname">Nachname</Label>
-        <Input
-          id="surname"
-          value={surname}
-          onChange={(e) => setSurname(e.target.value)}
-        />
+        <Input id="surname" value={surname} onChange={(e) => setSurname(e.target.value)} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="residency">Wohnort</Label>
-        <Input
-          id="residency"
-          value={residency}
-          onChange={(e) => setResidency(e.target.value)}
-        />
+        <Label htmlFor="zipCode">PLZ</Label>
+        <Input id="zipCode" value={zipCode} onChange={(e) => setZipCode(e.target.value)} required />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="phone">Telefonnummer</Label>
+        <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="addressLine1">Adresse</Label>
         <Input
-          id="phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          type="tel"
+          id="addressLine1"
+          value={addressLine1}
+          onChange={(e) => setAddressLine1(e.target.value)}
+          placeholder="Straße und Hausnummer"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="addressLine2">Adresszusatz</Label>
+        <Input
+          id="addressLine2"
+          value={addressLine2}
+          onChange={(e) => setAddressLine2(e.target.value)}
+          placeholder="z.B. Hinterhaus, 2. Stock"
         />
       </div>
 

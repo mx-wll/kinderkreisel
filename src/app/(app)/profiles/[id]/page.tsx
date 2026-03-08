@@ -16,13 +16,15 @@ export default async function PublicProfilePage({
   const profileData = await convexQuery<{
     id: string;
     name: string;
-    surname: string;
-    residency: string;
-    zipCode: string;
-    phone: string;
+    surname?: string;
+    zipCode?: string;
+    phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
     avatarUrl?: string;
     phoneConsent: boolean;
     emailNotifications: boolean;
+    onboardingCompletedAt?: number;
     lastMessageEmailAt: number;
     createdAt: number;
     updatedAt: number;
@@ -33,13 +35,17 @@ export default async function PublicProfilePage({
   const typedProfile: Profile = {
     id: profileData.id,
     name: profileData.name,
-    surname: profileData.surname,
-    residency: profileData.residency,
-    zip_code: profileData.zipCode,
-    phone: profileData.phone,
+    surname: profileData.surname ?? null,
+    zip_code: profileData.zipCode ?? null,
+    phone: profileData.phone ?? null,
+    address_line_1: profileData.addressLine1 ?? null,
+    address_line_2: profileData.addressLine2 ?? null,
     avatar_url: profileData.avatarUrl ?? null,
     phone_consent: profileData.phoneConsent,
     email_notifications: profileData.emailNotifications,
+    onboarding_completed_at: profileData.onboardingCompletedAt
+      ? new Date(profileData.onboardingCompletedAt).toISOString()
+      : null,
     last_message_email_at: new Date(profileData.lastMessageEmailAt).toISOString(),
     created_at: new Date(profileData.createdAt).toISOString(),
     updated_at: new Date(profileData.updatedAt).toISOString(),
@@ -101,9 +107,11 @@ export default async function PublicProfilePage({
         </Avatar>
         <div>
           <h1 className="text-xl font-bold">
-            {typedProfile.name} {typedProfile.surname}
+            {typedProfile.name} {typedProfile.surname ?? ""}
           </h1>
-          <p className="text-sm text-muted-foreground">{typedProfile.residency}</p>
+          {typedProfile.zip_code && (
+            <p className="text-sm text-muted-foreground">PLZ {typedProfile.zip_code}</p>
+          )}
         </div>
       </div>
 

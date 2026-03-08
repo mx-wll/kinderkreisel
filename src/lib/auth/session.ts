@@ -5,6 +5,7 @@ export const AUTH_COOKIE_NAME = "kk_session";
 export type SessionPayload = {
   profileId: string;
   email: string;
+  needsOnboarding: boolean;
 };
 
 function getSecret() {
@@ -25,9 +26,23 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
   try {
     const verified = await jwtVerify(token, getSecret());
     const payload = verified.payload as Partial<SessionPayload>;
-    if (!payload.profileId || !payload.email) return null;
-    return { profileId: payload.profileId, email: payload.email };
+    if (!payload.profileId || !payload.email || typeof payload.needsOnboarding !== "boolean") return null;
+    return {
+      profileId: payload.profileId,
+      email: payload.email,
+      needsOnboarding: payload.needsOnboarding,
+    };
   } catch {
     return null;
   }
+}
+
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  };
 }

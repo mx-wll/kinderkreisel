@@ -34,9 +34,11 @@ export default function PrivacyPage() {
             2. Welche Daten wir erheben
           </h2>
           <p className="text-muted-foreground">
-            Bei der Registrierung erheben wir: Vorname, Nachname, E-Mail-Adresse,
-            Wohnort, Postleitzahl und Telefonnummer. Optional kannst du ein
-            Profilbild hochladen und Angaben zu deinen Kindern machen.
+            Bei der Registrierung erheben wir zunächst deinen Namen,
+            deine E-Mail-Adresse und dein Passwort. Danach kannst du in deinem
+            Profil deine Postleitzahl verpflichtend sowie Telefonnummer und
+            Adresse optional ergänzen. Optional kannst du außerdem ein
+            Profilbild hochladen.
           </p>
         </section>
 
@@ -48,16 +50,16 @@ export default function PrivacyPage() {
             Deine Daten werden ausschließlich für den Betrieb der Plattform
             verwendet: Profil anzeigen, Artikel einstellen und Reservierungen
             ermöglichen. Deine Telefonnummer wird nur bei einer Reservierung an
-            den Käufer weitergegeben — und nur, wenn du dem bei der Anmeldung
-            zugestimmt hast.
+            den Käufer weitergegeben, wenn du sie in deinem Profil hinterlegt
+            hast.
           </p>
         </section>
 
         <section>
           <h2 className="text-base font-semibold">4. Speicherung</h2>
           <p className="text-muted-foreground">
-            Deine Daten werden in einer Supabase-Datenbank gespeichert (Hosting
-            in der EU). Bilder werden in Supabase Storage abgelegt. Wir geben
+            Deine Daten werden in Convex gespeichert. Bilder werden in Convex
+            Storage abgelegt. Wir geben
             deine Daten nicht an Dritte weiter, außer wie in Punkt 3 beschrieben.
           </p>
         </section>

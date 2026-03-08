@@ -1,6 +1,6 @@
 # Database Design
 
-Last updated: 2026-02-27
+Last updated: 2026-03-08
 
 This project uses Convex as the application database. The schema lives in `convex/schema.ts`.
 
@@ -21,14 +21,16 @@ Represents a user profile.
 |------|------|-------|
 | `id` | string | Primary external profile ID |
 | `name` | string | |
-| `surname` | string | |
-| `residency` | string | |
-| `zipCode` | string | Currently set to `83623` on signup |
-| `phone` | string | |
+| `surname` | string optional | |
+| `zipCode` | string optional | Required to complete onboarding |
+| `phone` | string optional | |
+| `addressLine1` | string optional | Street and house number |
+| `addressLine2` | string optional | Address supplement |
 | `avatarUrl` | string optional | Public image URL |
 | `avatarStorageId` | string optional | Convex storage ID |
-| `phoneConsent` | boolean | Whether phone number can be shown after reservation |
+| `phoneConsent` | boolean | Legacy compatibility field |
 | `emailNotifications` | boolean | Profile-level toggle |
+| `onboardingCompletedAt` | number optional | Set when required onboarding is completed |
 | `lastMessageEmailAt` | number | Reserved for digest batching |
 | `createdAt` | number | |
 | `updatedAt` | number | |
@@ -147,13 +149,32 @@ App-managed auth identity records.
 | `id` | string | Auth record ID |
 | `profileId` | string | Linked profile |
 | `email` | string | Lowercased and unique |
-| `passwordHash` | string | `bcryptjs` hash |
+| `passwordHash` | string optional | `bcryptjs` hash for password-based accounts |
 | `emailVerified` | boolean | |
 | `createdAt` | number | |
 | `updatedAt` | number | |
 
 Indexes:
 - `by_auth_id`
+- `by_profileId`
+- `by_email`
+
+### `authIdentities`
+
+External provider identities linked to local accounts.
+
+| Field | Type | Notes |
+|------|------|-------|
+| `profileId` | string | Linked profile |
+| `provider` | string | e.g. `google` |
+| `providerUserId` | string | Stable provider subject identifier |
+| `email` | string | Lowercased provider email |
+| `emailVerified` | boolean | Provider-asserted email verification |
+| `createdAt` | number | |
+| `updatedAt` | number | |
+
+Indexes:
+- `by_provider_providerUserId`
 - `by_profileId`
 - `by_email`
 

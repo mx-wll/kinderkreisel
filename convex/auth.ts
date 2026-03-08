@@ -1,22 +1,70 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+function splitName(fullName: string) {
+  const normalized = fullName.trim().replace(/\s+/g, " ");
+  if (!normalized) return { name: "", surname: "" };
+  const parts = normalized.split(" ");
+  if (parts.length === 1) return { name: parts[0], surname: "" };
+  return {
+    name: parts.slice(0, -1).join(" "),
+    surname: parts.at(-1) ?? "",
+  };
+}
+
+function hasCompletedOnboarding(profile: { zipCode?: string }) {
+  return Boolean(profile.zipCode?.trim());
+}
+
 export const getAuthUserByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const authUser = await ctx.db
       .query("authUsers")
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
+    if (!authUser) return null;
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_legacy_id", (q) => q.eq("id", authUser.profileId))
+      .unique();
+    return {
+      ...authUser,
+      needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+    };
   },
 });
 
 export const getAuthUserByProfileId = query({
   args: { profileId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const authUser = await ctx.db
       .query("authUsers")
       .withIndex("by_profileId", (q) => q.eq("profileId", args.profileId))
+      .unique();
+    if (!authUser) return null;
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_legacy_id", (q) => q.eq("id", authUser.profileId))
+      .unique();
+    return {
+      ...authUser,
+      needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+    };
+  },
+});
+
+export const getAuthIdentity = query({
+  args: {
+    provider: v.string(),
+    providerUserId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("authIdentities")
+      .withIndex("by_provider_providerUserId", (q) =>
+        q.eq("provider", args.provider).eq("providerUserId", args.providerUserId)
+      )
       .unique();
   },
 });
@@ -26,10 +74,7 @@ export const createUser = mutation({
     email: v.string(),
     passwordHash: v.string(),
     name: v.string(),
-    surname: v.string(),
-    residency: v.string(),
-    phone: v.string(),
-    phoneConsent: v.boolean(),
+    surname: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase();
@@ -44,12 +89,14 @@ export const createUser = mutation({
     await ctx.db.insert("profiles", {
       id: profileId,
       name: args.name,
-      surname: args.surname,
-      residency: args.residency,
-      zipCode: "83623",
-      phone: args.phone,
-      phoneConsent: args.phoneConsent,
+      surname: args.surname?.trim() || undefined,
+      zipCode: undefined,
+      phone: undefined,
+      addressLine1: undefined,
+      addressLine2: undefined,
+      phoneConsent: false,
       emailNotifications: true,
+      onboardingCompletedAt: undefined,
       lastMessageEmailAt: now,
       createdAt: now,
       updatedAt: now,
@@ -65,7 +112,131 @@ export const createUser = mutation({
       updatedAt: now,
     });
 
-    return { profileId, email };
+    return { profileId, email, needsOnboarding: true };
+  },
+});
+
+export const upsertOAuthUser = mutation({
+  args: {
+    provider: v.string(),
+    providerUserId: v.string(),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    name: v.optional(v.string()),
+    surname: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const email = args.email.toLowerCase();
+    const now = Date.now();
+    const existingIdentity = await ctx.db
+      .query("authIdentities")
+      .withIndex("by_provider_providerUserId", (q) =>
+        q.eq("provider", args.provider).eq("providerUserId", args.providerUserId)
+      )
+      .unique();
+
+    if (existingIdentity) {
+      const authUser = await ctx.db
+        .query("authUsers")
+        .withIndex("by_profileId", (q) => q.eq("profileId", existingIdentity.profileId))
+        .unique();
+      if (!authUser) throw new Error("AUTH_USER_NOT_FOUND");
+
+      await ctx.db.patch(existingIdentity._id, {
+        email,
+        emailVerified: args.emailVerified,
+        updatedAt: now,
+      });
+      await ctx.db.patch(authUser._id, {
+        email,
+        emailVerified: authUser.emailVerified || args.emailVerified,
+        updatedAt: now,
+      });
+
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_legacy_id", (q) => q.eq("id", authUser.profileId))
+        .unique();
+      return {
+        profileId: authUser.profileId,
+        email: authUser.email,
+        isNewUser: false,
+        needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+      };
+    }
+
+    const existingAuth = await ctx.db
+      .query("authUsers")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+
+    if (existingAuth) {
+      await ctx.db.insert("authIdentities", {
+        profileId: existingAuth.profileId,
+        provider: args.provider,
+        providerUserId: args.providerUserId,
+        email,
+        emailVerified: args.emailVerified,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.db.patch(existingAuth._id, {
+        emailVerified: existingAuth.emailVerified || args.emailVerified,
+        updatedAt: now,
+      });
+
+      const profile = await ctx.db
+        .query("profiles")
+        .withIndex("by_legacy_id", (q) => q.eq("id", existingAuth.profileId))
+        .unique();
+      return {
+        profileId: existingAuth.profileId,
+        email: existingAuth.email,
+        isNewUser: false,
+        needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+      };
+    }
+
+    const fallbackName = splitName(args.name ?? "");
+    const profileId = crypto.randomUUID();
+    const name = (args.name ?? fallbackName.name).trim() || "Google";
+    const surname = (args.surname ?? fallbackName.surname).trim();
+
+    await ctx.db.insert("profiles", {
+      id: profileId,
+      name,
+      surname: surname || undefined,
+      zipCode: undefined,
+      phone: undefined,
+      addressLine1: undefined,
+      addressLine2: undefined,
+      phoneConsent: false,
+      emailNotifications: true,
+      onboardingCompletedAt: undefined,
+      lastMessageEmailAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("authUsers", {
+      id: crypto.randomUUID(),
+      profileId,
+      email,
+      emailVerified: args.emailVerified,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await ctx.db.insert("authIdentities", {
+      profileId,
+      provider: args.provider,
+      providerUserId: args.providerUserId,
+      email,
+      emailVerified: args.emailVerified,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return { profileId, email, isNewUser: true, needsOnboarding: true };
   },
 });
 
@@ -126,7 +297,15 @@ export const consumeEmailVerificationToken = mutation({
       updatedAt: Date.now(),
     });
     await ctx.db.patch(tokenRow._id, { usedAt: Date.now() });
-    return { profileId: authUser.profileId, email: authUser.email };
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_legacy_id", (q) => q.eq("id", authUser.profileId))
+      .unique();
+    return {
+      profileId: authUser.profileId,
+      email: authUser.email,
+      needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+    };
   },
 });
 
@@ -189,7 +368,15 @@ export const consumeResetToken = mutation({
       updatedAt: Date.now(),
     });
     await ctx.db.patch(reset._id, { usedAt: Date.now() });
-    return { profileId: authUser.profileId, email: authUser.email };
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_legacy_id", (q) => q.eq("id", authUser.profileId))
+      .unique();
+    return {
+      profileId: authUser.profileId,
+      email: authUser.email,
+      needsOnboarding: !profile || !hasCompletedOnboarding(profile),
+    };
   },
 });
 
@@ -201,6 +388,11 @@ export const deleteAuthUserByProfileId = mutation({
       .withIndex("by_profileId", (q) => q.eq("profileId", args.profileId))
       .unique();
     if (authUser) await ctx.db.delete(authUser._id);
+    const identities = await ctx.db
+      .query("authIdentities")
+      .withIndex("by_profileId", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    await Promise.all(identities.map((identity) => ctx.db.delete(identity._id)));
     return { ok: true };
   },
 });
@@ -211,7 +403,6 @@ export const claimLegacyProfile = mutation({
     passwordHash: v.string(),
     name: v.string(),
     surname: v.string(),
-    residency: v.string(),
     phone: v.string(),
   },
   handler: async (ctx, args) => {
@@ -225,15 +416,13 @@ export const claimLegacyProfile = mutation({
     const profiles = await ctx.db.query("profiles").collect();
     const normalizedName = args.name.trim().toLowerCase();
     const normalizedSurname = args.surname.trim().toLowerCase();
-    const normalizedResidency = args.residency.trim().toLowerCase();
     const normalizedPhone = args.phone.replace(/\s+/g, "");
 
     const candidates = profiles.filter((profile) => {
-      const profilePhone = profile.phone.replace(/\s+/g, "");
+      const profilePhone = (profile.phone ?? "").replace(/\s+/g, "");
       return (
         profile.name.trim().toLowerCase() === normalizedName &&
-        profile.surname.trim().toLowerCase() === normalizedSurname &&
-        profile.residency.trim().toLowerCase() === normalizedResidency &&
+        (profile.surname ?? "").trim().toLowerCase() === normalizedSurname &&
         profilePhone === normalizedPhone
       );
     });
@@ -257,6 +446,10 @@ export const claimLegacyProfile = mutation({
       updatedAt: Date.now(),
     });
 
-    return { profileId: profile.id, email };
+    return {
+      profileId: profile.id,
+      email,
+      needsOnboarding: !hasCompletedOnboarding(profile),
+    };
   },
 });

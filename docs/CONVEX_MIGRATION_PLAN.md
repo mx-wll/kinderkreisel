@@ -47,7 +47,7 @@ From project docs + code:
 ## Table -> Convex collection mapping
 
 - `profiles` -> `profiles`
-  - key fields: userId (unique), name, surname, residency, zipCode, phone, avatarStorageId, phoneConsent, emailNotifications, lastMessageEmailAt, createdAt, updatedAt
+  - key fields in the early migration plan: userId (unique), name, surname, residency, zipCode, phone, avatarStorageId, phoneConsent, emailNotifications, lastMessageEmailAt, createdAt, updatedAt
 - `children` -> `children`
   - profileId index, age, gender, createdAt
 - `items` -> `items`
@@ -73,6 +73,8 @@ Execution:
 2. Add `userId` mapping in `profiles` and create profile-on-signup logic in Convex mutation (replacing SQL trigger).
 3. Replace middleware checks (`src/lib/supabase/middleware.ts`) with auth provider + Convex-compatible session checks.
 4. Migrate login/signup/reset/update-password UI handlers from Supabase calls to new auth API.
+
+Historical note: the current runtime has already moved to app-managed auth on Next.js route handlers with Google login support and onboarding-based profile completion. This document is preserved as migration history.
 
 ## 6) Storage migration plan
 

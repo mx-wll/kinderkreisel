@@ -1,34 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { convexMutation, convexQuery } from "@/lib/convex/server";
-
-function createResendSendFailedError(status: number) {
-  return new Error(`RESEND_SEND_FAILED:${status}`);
-}
-
-async function sendVerificationMail(to: string, link: string) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("RESEND_NOT_CONFIGURED");
-  const from = process.env.RESEND_FROM_EMAIL || "findln <onboarding@resend.dev>";
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Bitte bestätige deine E-Mail",
-      html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
-    }),
-  });
-  if (!res.ok) {
-    await res.text();
-    throw createResendSendFailedError(res.status);
-  }
-}
+import { ResendSendError, sendResendEmail } from "@/lib/email/resend";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { email?: string };
@@ -54,16 +27,27 @@ export async function POST(request: Request) {
 
     const origin = new URL(request.url).origin;
     const link = `${origin}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
-    await sendVerificationMail(authUser.email, link);
+    await sendResendEmail({
+      to: authUser.email,
+      subject: "Bitte bestätige deine E-Mail",
+      html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("RESEND_SEND_FAILED")) {
-      const [, status] = error.message.split(":");
-      console.error("[auth/resend-verification] resend send failed", { status });
+    if (error instanceof ResendSendError && error.message.startsWith("RESEND_SEND_FAILED:")) {
+      console.error("[auth/resend-verification] resend send failed", {
+        status: error.status,
+        detail: error.detail,
+      });
     }
-    if (error instanceof Error && error.message.includes("RESEND_NOT_CONFIGURED")) {
+    if (
+      error instanceof ResendSendError &&
+      ["RESEND_NOT_CONFIGURED", "RESEND_FROM_EMAIL_MISSING", "RESEND_FROM_EMAIL_INVALID"].includes(
+        error.message
+      )
+    ) {
       return NextResponse.json(
-        { error: "E-Mail-Versand ist aktuell nicht konfiguriert." },
+        { error: "E-Mail-Versand ist aktuell nicht korrekt konfiguriert." },
         { status: 503 }
       );
     }

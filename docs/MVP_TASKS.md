@@ -1,6 +1,6 @@
 # MVP Build — Granular Task List
 
-> Historical note: this document is preserved as migration/build history. The current runtime backend is Convex, route protection lives in `src/proxy.ts`, and the current architecture is documented in `ARCHITECTURE.md`, `TECH.md`, and `DATABASE.md`.
+> Historical note: this document is preserved as migration/build history. The current runtime backend is Convex, route protection lives in `src/proxy.ts`, Google login is supported, onboarding requires a ZIP code, and the canonical runtime architecture is documented in `ARCHITECTURE.md`, `TECH.md`, and `DATABASE.md`.
 
 
 This is the step-by-step build plan for the findln MVP. Each task is small enough to pick up independently. Check off tasks as they are completed.
@@ -27,7 +27,7 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 ## Phase 2: Database Schema (Supabase Migrations)
 
 - [x] **2.1** Enable `pg_cron` and `moddatetime` extensions
-- [x] **2.2** Create `profiles` table (id, name, surname, residency, zip_code, phone, avatar_url, phone_consent, created_at, updated_at)
+- [x] **2.2** Create `profiles` table (historical plan: id, name, surname, residency, zip_code, phone, avatar_url, phone_consent, created_at, updated_at)
 - [x] **2.3** Create `children` table (id, profile_id FK, age, gender, created_at)
 - [x] **2.4** Create `items` table (id, seller_id FK, title, description, pricing_type, pricing_detail, image_url, status, created_at, updated_at)
 - [x] **2.5** Create `reservations` table (id, item_id FK, buyer_id FK, status, created_at, expires_at) with unique partial index on (item_id) WHERE status = 'active'
@@ -54,8 +54,8 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 ## Phase 4: Authentication Pages
 
 - [x] **4.1** Create auth layout (`app/(auth)/layout.tsx`) — centered card layout, no bottom nav
-- [x] **4.2** Build signup page (`app/(auth)/signup/page.tsx`) — form with: email, password, name, surname, residency, phone, zip code (locked to 83623), privacy consent checkbox
-- [x] **4.3** Wire signup form to Supabase Auth `signUp()` with user metadata (name, surname, residency, phone, zip_code, phone_consent)
+- [x] **4.2** Historical signup build task from Supabase era
+- [x] **4.3** Historical Supabase signup wiring task
 - [x] **4.4** Build login page (`app/(auth)/login/page.tsx`) — email + password form
 - [x] **4.5** Wire login form to Supabase Auth `signInWithPassword()`
 - [x] **4.6** Build password reset page (`app/(auth)/reset-password/page.tsx`) — email input, sends reset link
@@ -127,9 +127,9 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 ## Phase 10: My Profile Page
 
 - [x] **10.1** Create My Profile page (`app/(app)/profile/page.tsx`) — server component, fetch own profile + children + own items + reservations (as buyer)
-- [x] **10.2** Display profile info: avatar, name, surname, residency, phone
+- [x] **10.2** Display profile info (historical target: avatar, name, surname, residency, phone)
 - [x] **10.3** Add "Edit Profile" button → navigates to edit view or opens inline form
-- [x] **10.4** Build profile edit form: name, surname, residency, phone, children (add/remove/edit)
+- [x] **10.4** Historical profile edit task from Supabase era
 - [x] **10.5** Build avatar upload component — compress + upload to `avatars/{user_id}/avatar.ext`, update profile.avatar_url
 - [x] **10.6** Allow removing avatar (delete from storage, set avatar_url to null)
 - [x] **10.7** List "Meine Artikel" section — grid of own items with edit/delete actions
@@ -149,7 +149,7 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 - [x] **11.2** Build `ProfileCard` component — avatar, name, item count badge
 - [x] **11.3** Add empty state: "Noch keine Nutzer registriert."
 - [x] **11.4** Create public profile page (`app/(app)/profiles/[id]/page.tsx`) — fetch profile + their items
-- [x] **11.5** Display: avatar, name, residency, list of their available items
+- [x] **11.5** Display public profile details (historical target mentioned residency)
 - [x] **11.6** Tapping an item navigates to the item detail page
 
 ---
@@ -187,7 +187,7 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 ## Phase 15: Seed Data
 
 - [x] **15.1** Write seed script (`scripts/seed.ts`) — creates 10 dummy users via Supabase Auth admin API (+ SQL seeding via Supabase MCP)
-- [x] **15.2** Each user gets a profile with German names, phone numbers, residency in 83623
+- [x] **15.2** Historical seed target from early local-only assumptions
 - [x] **15.3** Each user gets 15 items with stock photos (from picsum.photos), German titles/descriptions, random pricing types
 - [x] **15.4** Run seed script against Supabase and verify data appears correctly in the app
 
@@ -198,7 +198,7 @@ This is the step-by-step build plan for the findln MVP. Each task is small enoug
 - [ ] **16.1** Push to GitHub repo
 - [ ] **16.2** Connect repo to Vercel, set environment variables
 - [ ] **16.3** Deploy to Vercel and verify the app works in production
-- [ ] **16.4** Test full user journey on mobile: signup → browse → item detail → reserve → view phone → create item → edit → delete → profile edit → logout
+- [ ] **16.4** Test full user journey on mobile: signup/onboarding → browse → item detail → reserve → view contact options → create item → edit → delete → profile edit → logout
 - [ ] **16.5** Test password reset flow end-to-end in production
 - [x] **16.6** Update PRODUCT_STATUS.md — check off all completed MVP items
 - [x] **16.7** Update ARCHITECTURE.md with final project structure
