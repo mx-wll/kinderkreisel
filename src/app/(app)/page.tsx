@@ -171,6 +171,17 @@ function HomeFeed({
   const referralsAvailable = referralSummary !== null;
   const showOnboardingPrompt = Boolean(onboardingCompletedAt && userItemCount === 0);
   const showLowSupplyPrompt = items.length < 6;
+  const homeInviteTitle = showOnboardingPrompt
+    ? "Deine Nachbarschaft ist bereit"
+    : showLowSupplyPrompt
+      ? "Noch wenig los in deiner Naehe"
+      : "Freunde in deiner Naehe einladen";
+  const homeInviteDescription = showOnboardingPrompt
+    ? "Hol noch eine Familie aus deiner Naehe dazu. Mehr lokale Familien bedeuten schneller passende Artikel in deinem Umkreis."
+    : showLowSupplyPrompt
+      ? "Hol 2 bis 3 Familien aus deiner Gegend dazu. So wachsen Auswahl und lokale Uebergaben schneller."
+      : "Mehr Familien in der Gegend bringen mehr passende Kinderartikel, kuerzere Wege und einen staerkeren lokalen Kreis.";
+  const homeInviteButtonLabel = showLowSupplyPrompt ? "Kreis vergroessern" : "Freunde einladen";
 
   return (
     <PullToRefresh>
@@ -190,29 +201,23 @@ function HomeFeed({
 
         <SearchFilter />
 
-        {referralsAvailable && showOnboardingPrompt && (
+        {referralsAvailable && (
           <div className="mt-4">
             <InviteFriendsDialog
               compact
-              dismissKey="referral.prompt.onboarding"
+              dismissKey="referral.prompt.home"
               summary={referralSummary}
-              title="Deine Nachbarschaft ist bereit"
-              description="Hol noch eine Familie aus deiner Naehe dazu. Mehr lokale Familien bedeuten schneller passende Artikel in deinem Umkreis."
+              title={homeInviteTitle}
+              description={homeInviteDescription}
               shareReason="Bitte nur an Eltern, Freunde oder Nachbar*innen schicken, die du wirklich kennst."
-              trigger={<Button className="rounded-full">Freunde einladen</Button>}
-            />
-          </div>
-        )}
-
-        {referralsAvailable && !showOnboardingPrompt && showLowSupplyPrompt && (
-          <div className="mt-4">
-            <InviteFriendsDialog
-              compact
-              dismissKey="referral.prompt.low-supply"
-              summary={referralSummary}
-              title="Noch wenig los in deiner Naehe"
-              description="Hol 2 bis 3 Familien aus deiner Gegend dazu. So wachsen Auswahl und lokale Uebergaben schneller."
-              trigger={<Button variant="outline" className="rounded-full">Kreis vergroessern</Button>}
+              trigger={
+                <Button
+                  variant={showLowSupplyPrompt && !showOnboardingPrompt ? "outline" : "default"}
+                  className="rounded-full"
+                >
+                  {homeInviteButtonLabel}
+                </Button>
+              }
             />
           </div>
         )}
