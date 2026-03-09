@@ -127,8 +127,14 @@ export function ItemForm({ mode, initialData, existingImageUrl }: ItemFormProps)
             imageStorageId: uploaded.storageId,
           });
 
+          await fetch("/api/referrals/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trigger: "first_listing" }),
+          }).catch(() => undefined);
+
           toast.success("Artikel erfolgreich eingestellt!");
-          router.push(`/items/${itemId}`);
+          router.push(`/items/${itemId}?invite=first-listing`);
         } else if (mode === "edit" && initialData) {
           let imageUrl = initialData.image_url;
           let imageStorageId: string | undefined;

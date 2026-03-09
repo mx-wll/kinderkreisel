@@ -21,6 +21,7 @@ import type * as items from "../items.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrations from "../migrations.js";
 import type * as profiles from "../profiles.js";
+import type * as referrals from "../referrals.js";
 import type * as reservations from "../reservations.js";
 
 /**
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   maintenance: typeof maintenance;
   migrations: typeof migrations;
   profiles: typeof profiles;
+  referrals: typeof referrals;
   reservations: typeof reservations;
 }>;
 export declare const api: FilterApi<

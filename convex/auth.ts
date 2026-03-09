@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 function splitName(fullName: string) {
@@ -14,6 +14,39 @@ function splitName(fullName: string) {
 
 function hasCompletedOnboarding(profile: { zipCode?: string }) {
   return Boolean(profile.zipCode?.trim());
+}
+
+async function attachReferralIfEligible(
+  ctx: MutationCtx,
+  profileId: string,
+  referralInviteId?: string
+) {
+  if (!referralInviteId) return;
+
+  const profile = await ctx.db
+    .query("profiles")
+    .withIndex("by_legacy_id", (q) => q.eq("id", profileId))
+    .unique();
+  if (!profile || profile.referredByProfileId || profile.referralInviteId) return;
+
+  const invite = await ctx.db
+    .query("referralInvites")
+    .withIndex("by_inviteId", (q) => q.eq("id", referralInviteId))
+    .unique();
+  if (!invite || invite.invitedProfileId || invite.inviterProfileId === profileId) return;
+
+  const now = Date.now();
+  await ctx.db.patch(profile._id, {
+    referredByProfileId: invite.inviterProfileId,
+    referralInviteId: invite.id,
+    referralSignedUpAt: now,
+    updatedAt: now,
+  });
+  await ctx.db.patch(invite._id, {
+    invitedProfileId: profileId,
+    status: invite.status === "activated" ? "activated" : "signed_up",
+    signedUpAt: now,
+  });
 }
 
 export const getAuthUserByEmail = query({
@@ -75,6 +108,7 @@ export const createUser = mutation({
     passwordHash: v.string(),
     name: v.string(),
     surname: v.optional(v.string()),
+    referralInviteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase();
@@ -112,6 +146,8 @@ export const createUser = mutation({
       updatedAt: now,
     });
 
+    await attachReferralIfEligible(ctx, profileId, args.referralInviteId);
+
     return { profileId, email, needsOnboarding: true };
   },
 });
@@ -124,6 +160,7 @@ export const upsertOAuthUser = mutation({
     emailVerified: v.boolean(),
     name: v.optional(v.string()),
     surname: v.optional(v.string()),
+    referralInviteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase();
@@ -235,6 +272,8 @@ export const upsertOAuthUser = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    await attachReferralIfEligible(ctx, profileId, args.referralInviteId);
 
     return { profileId, email, isNewUser: true, needsOnboarding: true };
   },
@@ -381,6 +420,7 @@ export const consumeEmailLoginCode = mutation({
   args: {
     email: v.string(),
     codeHash: v.string(),
+    referralInviteId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const email = args.email.toLowerCase();
@@ -443,6 +483,8 @@ export const consumeEmailLoginCode = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    await attachReferralIfEligible(ctx, profileId, args.referralInviteId);
 
     return {
       profileId,

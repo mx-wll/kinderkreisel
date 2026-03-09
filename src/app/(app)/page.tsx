@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { InviteFriendsDialog } from "@/components/invite-friends-dialog";
 import { ItemCard } from "@/components/item-card";
+import { ReferralActivationPing } from "@/components/referral-activation-ping";
 import { RefreshButton } from "@/components/refresh-button";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { SearchFilter } from "@/components/search-filter";
@@ -7,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Leaf, MapPinHouse, Shirt } from "lucide-react";
 import type { ItemWithSeller } from "@/lib/types/database";
+import type { ReferralSummary } from "@/lib/types/database";
 import { convexQuery } from "@/lib/convex/server";
 import { getCurrentSession } from "@/lib/auth/server";
 
@@ -129,6 +132,13 @@ function LandingPage() {
           </div>
         </section>
 
+        <section className="rounded-3xl border border-teal-200/70 bg-white/80 p-5 shadow-[0_30px_80px_-50px_rgba(20,184,166,0.35)] backdrop-blur-sm">
+          <p className="text-sm font-medium text-teal-900">Der Kreis waechst Familie fuer Familie</p>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Jede neue Familie bringt mehr passende Kinderartikel in deiner Naehe in Bewegung, statt sie in Kisten verschwinden zu lassen.
+          </p>
+        </section>
+
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/80 pt-4 text-sm text-muted-foreground">
           <p>Für Familien in 83623.</p>
           <div className="flex items-center gap-4">
@@ -148,13 +158,23 @@ function LandingPage() {
 function HomeFeed({
   items,
   hasFilters,
+  referralSummary,
+  userItemCount,
+  onboardingCompletedAt,
 }: {
   items: ItemWithSeller[];
   hasFilters: boolean;
+  referralSummary: ReferralSummary;
+  userItemCount: number;
+  onboardingCompletedAt?: number;
 }) {
+  const showOnboardingPrompt = Boolean(onboardingCompletedAt && userItemCount === 0);
+  const showLowSupplyPrompt = items.length < 6;
+
   return (
     <PullToRefresh>
       <div className="px-4 py-6">
+        <ReferralActivationPing trigger="feed_view" />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-[family-name:var(--font-borel)]">findln</h1>
@@ -168,6 +188,33 @@ function HomeFeed({
         </div>
 
         <SearchFilter />
+
+        {showOnboardingPrompt && (
+          <div className="mt-4">
+            <InviteFriendsDialog
+              compact
+              dismissKey="referral.prompt.onboarding"
+              summary={referralSummary}
+              title="Deine Nachbarschaft ist bereit"
+              description="Hol noch eine Familie aus deiner Naehe dazu. Mehr lokale Familien bedeuten schneller passende Artikel in deinem Umkreis."
+              shareReason="Bitte nur an Eltern, Freunde oder Nachbar*innen schicken, die du wirklich kennst."
+              trigger={<Button className="rounded-full">Freunde einladen</Button>}
+            />
+          </div>
+        )}
+
+        {!showOnboardingPrompt && showLowSupplyPrompt && (
+          <div className="mt-4">
+            <InviteFriendsDialog
+              compact
+              dismissKey="referral.prompt.low-supply"
+              summary={referralSummary}
+              title="Noch wenig los in deiner Naehe"
+              description="Hol 2 bis 3 Familien aus deiner Gegend dazu. So wachsen Auswahl und lokale Uebergaben schneller."
+              trigger={<Button variant="outline" className="rounded-full">Kreis vergroessern</Button>}
+            />
+          </div>
+        )}
 
         {items.length === 0 ? (
           <div className="mt-16 flex flex-col items-center justify-center text-center">
@@ -235,6 +282,13 @@ export default async function HomePage({
   const sellerMap = new Map(
     sellers.filter((seller): seller is { id: string; name: string; avatarUrl?: string } => !!seller).map((seller) => [seller.id, seller])
   );
+  const [profile, userItemCount, referralSummary] = await Promise.all([
+    convexQuery<{ onboardingCompletedAt?: number } | null>("profiles:getById", {
+      id: session.profileId,
+    }),
+    convexQuery<number>("items:countBySeller", { sellerId: session.profileId }),
+    convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }),
+  ]);
 
   const feed: ItemWithSeller[] = items.map((item) => ({
     id: item.id,
@@ -258,5 +312,13 @@ export default async function HomePage({
   }));
 
   const hasFilters = !!(q || pricing || category || size || shoe_size);
-  return <HomeFeed items={feed} hasFilters={hasFilters} />;
+  return (
+    <HomeFeed
+      items={feed}
+      hasFilters={hasFilters}
+      referralSummary={referralSummary}
+      userItemCount={userItemCount}
+      onboardingCompletedAt={profile?.onboardingCompletedAt}
+    />
+  );
 }

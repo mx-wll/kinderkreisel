@@ -16,12 +16,17 @@ export default defineSchema({
     phoneConsent: v.boolean(),
     emailNotifications: v.boolean(),
     onboardingCompletedAt: v.optional(v.number()),
+    referredByProfileId: v.optional(v.string()),
+    referralInviteId: v.optional(v.string()),
+    referralSignedUpAt: v.optional(v.number()),
+    referralActivatedAt: v.optional(v.number()),
     lastMessageEmailAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_legacy_id", ["id"])
-    .index("by_createdAt", ["createdAt"]),
+    .index("by_createdAt", ["createdAt"])
+    .index("by_referredByProfileId", ["referredByProfileId"]),
 
   children: defineTable({
     id: v.string(),
@@ -149,4 +154,19 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_codeHash", ["codeHash"]),
+
+  referralInvites: defineTable({
+    id: v.string(),
+    inviterProfileId: v.string(),
+    invitedProfileId: v.optional(v.string()),
+    status: v.string(),
+    channel: v.optional(v.string()),
+    createdAt: v.number(),
+    signedUpAt: v.optional(v.number()),
+    activatedAt: v.optional(v.number()),
+  })
+    .index("by_inviteId", ["id"])
+    .index("by_inviterProfileId_createdAt", ["inviterProfileId", "createdAt"])
+    .index("by_invitedProfileId", ["invitedProfileId"])
+    .index("by_status_createdAt", ["status", "createdAt"]),
 });

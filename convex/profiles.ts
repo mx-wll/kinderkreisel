@@ -99,6 +99,18 @@ export const remove = mutation({
       .collect();
     for (const reservation of reservations) await ctx.db.delete(reservation._id);
 
+    const sentInvites = await ctx.db
+      .query("referralInvites")
+      .withIndex("by_inviterProfileId_createdAt", (q) => q.eq("inviterProfileId", args.id))
+      .collect();
+    for (const invite of sentInvites) await ctx.db.delete(invite._id);
+
+    const receivedInvites = await ctx.db
+      .query("referralInvites")
+      .withIndex("by_invitedProfileId", (q) => q.eq("invitedProfileId", args.id))
+      .collect();
+    for (const invite of receivedInvites) await ctx.db.delete(invite._id);
+
     const buyerConversations = await ctx.db
       .query("conversations")
       .withIndex("by_buyerId_updatedAt", (q) => q.eq("buyerId", args.id))

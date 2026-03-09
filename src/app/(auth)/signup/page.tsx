@@ -1,5 +1,10 @@
 import { SignUpForm } from "@/components/sign-up-form";
 
-export default function SignUpPage() {
-  return <SignUpForm />;
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ via?: string }>;
+}) {
+  const { via } = await searchParams;
+  return <SignUpForm invited={via === "invite"} />;
 }

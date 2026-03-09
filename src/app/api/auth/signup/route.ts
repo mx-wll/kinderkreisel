@@ -1,9 +1,11 @@
 import { hash } from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
 import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
 import { ResendSendError, sendResendEmail } from "@/lib/email/resend";
+import { REFERRAL_INVITE_COOKIE } from "@/lib/referrals";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -21,6 +23,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    const cookieStore = await cookies();
+    const referralInviteId = cookieStore.get(REFERRAL_INVITE_COOKIE)?.value;
     const resendConfigured = Boolean(process.env.RESEND_API_KEY);
     const resendFromConfigured = Boolean(process.env.RESEND_FROM_EMAIL?.trim());
     if (process.env.NODE_ENV === "production" && (!resendConfigured || !resendFromConfigured)) {
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
       passwordHash,
       name: body.name,
       surname: body.surname,
+      referralInviteId,
     });
 
     if (!resendConfigured) {
@@ -49,6 +54,7 @@ export async function POST(request: Request) {
       });
       const response = NextResponse.json({ success: true, autoVerified: true, redirectTo: "/onboarding" });
       response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
+      response.cookies.delete(REFERRAL_INVITE_COOKIE);
       return response;
     }
 
@@ -67,7 +73,9 @@ export async function POST(request: Request) {
       html: `<p>Bitte bestätige deine E-Mail:</p><p><a href="${link}">${link}</a></p>`,
     });
 
-    return NextResponse.json({ success: true });
+    const response = NextResponse.json({ success: true });
+    response.cookies.delete(REFERRAL_INVITE_COOKIE);
+    return response;
   } catch (error) {
     if (error instanceof Error && error.message.includes("EMAIL_EXISTS")) {
       return NextResponse.json(

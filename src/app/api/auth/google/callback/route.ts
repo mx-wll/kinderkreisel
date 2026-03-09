@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
 import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
+import { REFERRAL_INVITE_COOKIE } from "@/lib/referrals";
 import {
   consumeGoogleOAuthCookies,
   exchangeGoogleCode,
@@ -28,6 +30,8 @@ export async function GET(request: Request) {
   }
 
   try {
+    const cookieStore = await cookies();
+    const referralInviteId = cookieStore.get(REFERRAL_INVITE_COOKIE)?.value;
     const tokens = await exchangeGoogleCode(code, verifier, origin);
     const profile = await verifyGoogleIdToken(tokens.id_token, nonce);
     const result = await convexMutation<{
@@ -44,6 +48,7 @@ export async function GET(request: Request) {
         emailVerified: profile.emailVerified,
         name: profile.givenName || profile.fullName,
         surname: profile.familyName,
+        referralInviteId,
       }
     );
 
@@ -55,6 +60,9 @@ export async function GET(request: Request) {
 
     const response = redirectTo(result.needsOnboarding ? "/onboarding" : "/", origin);
     response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
+    if (result.isNewUser) {
+      response.cookies.delete(REFERRAL_INVITE_COOKIE);
+    }
     return response;
   } catch (error) {
     console.error("[auth/google/callback] failed", error);

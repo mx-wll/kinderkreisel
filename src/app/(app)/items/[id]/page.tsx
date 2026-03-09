@@ -5,6 +5,7 @@ import { Phone, MessageCircle, ArrowLeft, Pencil, Trash2, Clock } from "lucide-r
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InviteFriendsDialog } from "@/components/invite-friends-dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   getStorageUrl,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/utils";
 import type { ItemWithSellerDetail } from "@/lib/types/database";
 import type { Reservation } from "@/lib/types/database";
+import type { ReferralSummary } from "@/lib/types/database";
 import { ReserveButton } from "./reserve-button";
 import { CancelReservationButton } from "./cancel-reservation-button";
 import { StartChatButton } from "@/components/start-chat-button";
@@ -23,10 +25,13 @@ import { getCurrentSession } from "@/lib/auth/server";
 
 export default async function ItemDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ invite?: string }>;
 }) {
   const { id } = await params;
+  const { invite } = await searchParams;
   const session = await getCurrentSession();
   {
     const item = await convexQuery<{
@@ -63,6 +68,12 @@ export default async function ItemDetailPage({
       createdAt: number;
       expiresAt: number;
     } | null>("reservations:getActiveByItem", { itemId: id });
+    const referralSummary = session
+      ? await convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId })
+      : null;
+    const myItemCount = session
+      ? await convexQuery<number>("items:countBySeller", { sellerId: session.profileId })
+      : 0;
 
     const typedItem: ItemWithSellerDetail = {
       id: item.id,
@@ -178,6 +189,18 @@ export default async function ItemDetailPage({
           <div className="space-y-3">
             {isOwner && (
               <>
+                {invite === "first-listing" && myItemCount === 1 && referralSummary && (
+                  <div className="rounded-2xl border border-teal-200/70 bg-teal-50/70 p-4">
+                    <InviteFriendsDialog
+                      compact
+                      dismissKey="referral.prompt.first-listing"
+                      summary={referralSummary}
+                      title="Dein erster Artikel ist live"
+                      description="Wenn du noch 1 bis 2 Familien aus deiner Naehe dazuholst, sehen mehr passende Leute deinen Artikel und lokale Uebergaben werden einfacher."
+                      trigger={<Button className="rounded-full">Freunde einladen</Button>}
+                    />
+                  </div>
+                )}
                 <div className="flex gap-3">
                   <Button asChild variant="outline" className="flex-1">
                     <Link href={`/items/${id}/edit`}>

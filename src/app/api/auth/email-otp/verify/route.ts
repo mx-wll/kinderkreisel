@@ -1,7 +1,9 @@
 import { createHash } from "crypto";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convex/server";
 import { AUTH_COOKIE_NAME, getSessionCookieOptions, signSession } from "@/lib/auth/session";
+import { REFERRAL_INVITE_COOKIE } from "@/lib/referrals";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
@@ -17,6 +19,8 @@ export async function POST(request: Request) {
   const codeHash = createHash("sha256").update(code).digest("hex");
 
   try {
+    const cookieStore = await cookies();
+    const referralInviteId = cookieStore.get(REFERRAL_INVITE_COOKIE)?.value;
     const result = await convexMutation<{
       profileId: string;
       email: string;
@@ -25,6 +29,7 @@ export async function POST(request: Request) {
     }>("auth:consumeEmailLoginCode", {
       email,
       codeHash,
+      referralInviteId,
     });
 
     const token = await signSession({
@@ -39,6 +44,9 @@ export async function POST(request: Request) {
       createdAccount: result.createdAccount,
     });
     response.cookies.set(AUTH_COOKIE_NAME, token, getSessionCookieOptions());
+    if (result.createdAccount) {
+      response.cookies.delete(REFERRAL_INVITE_COOKIE);
+    }
     return response;
   } catch (error) {
     if (error instanceof Error && ["INVALID_CODE", "CODE_USED", "CODE_EXPIRED"].includes(error.message)) {

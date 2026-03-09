@@ -4,6 +4,7 @@ import { PlusCircle, Clock, Phone, MessageCircle, Pencil, Trash2 } from "lucide-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InviteFriendsDialog } from "@/components/invite-friends-dialog";
 import { Separator } from "@/components/ui/separator";
 import { LogoutButton } from "@/components/logout-button";
 import { AvatarUpload } from "@/components/avatar-upload";
@@ -21,6 +22,7 @@ import type {
   Profile,
   Item,
   Reservation,
+  ReferralSummary,
 } from "@/lib/types/database";
 import { convexQuery } from "@/lib/convex/server";
 import { getCurrentSession } from "@/lib/auth/server";
@@ -35,6 +37,14 @@ export default async function MyProfilePage() {
 
   let typedProfile: Profile | null = null;
   let typedItems: ItemWithReservation[] = [];
+  let referralSummary: ReferralSummary = {
+    inviteCount: 0,
+    signedUpCount: 0,
+    activatedCount: 0,
+    hasSupporterBadge: false,
+    nextPerkAt: 1,
+    recent: [],
+  };
   let typedReservations: Array<
     Reservation & {
       item: Item & {
@@ -82,7 +92,7 @@ export default async function MyProfilePage() {
         }
       : null;
 
-    const [items, myReservations] = await Promise.all([
+    const [items, myReservations, referral] = await Promise.all([
       convexQuery<
         Array<{
           id: string;
@@ -110,7 +120,9 @@ export default async function MyProfilePage() {
           expiresAt: number;
         }>
       >("reservations:listActiveByBuyer", { buyerId: session.profileId }),
+      convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }),
     ]);
+    referralSummary = referral;
 
     typedItems = await Promise.all(
       items.map(async (item) => {
@@ -229,7 +241,12 @@ export default async function MyProfilePage() {
     <div className="px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Mein Profil</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Mein Profil</h1>
+          {referralSummary.hasSupporterBadge && (
+            <Badge className="rounded-full bg-teal-700 text-white">Unterstuetzer*in</Badge>
+          )}
+        </div>
         <LogoutButton />
       </div>
 
@@ -242,6 +259,18 @@ export default async function MyProfilePage() {
 
       {/* Profile info + edit */}
       <ProfileEditToggle profile={typedProfile} />
+
+      <Separator />
+
+      <section>
+        <InviteFriendsDialog
+          summary={referralSummary}
+          title="Freunde einladen"
+          description="Hol Eltern, Freunde oder Nachbar*innen in deinen lokalen Kreis. Mehr Familien in der Gegend bringen mehr passende Teile direkt in die Naehe."
+          shareReason="Bitte nur an Leute schicken, die du kennst."
+          trigger={<Button className="rounded-full">Jetzt einladen</Button>}
+        />
+      </section>
 
       <Separator />
 
@@ -459,6 +488,23 @@ export default async function MyProfilePage() {
       </section>
 
       <Separator />
+
+      {(typedReservations.length > 0 || itemsWithActiveReservations.length > 0) && (
+        <>
+          <section>
+            <InviteFriendsDialog
+              compact
+              dismissKey="referral.prompt.reservation"
+              summary={referralSummary}
+              title="Schon ein gutes Match gefunden?"
+              description="Wenn Reservierungen klappen, lohnt sich oft noch eine weitere Familie im Kreis. So wird Auswahl und Abholung in deiner Naehe leichter."
+              trigger={<Button variant="outline" className="rounded-full">Noch jemanden einladen</Button>}
+            />
+          </section>
+
+          <Separator />
+        </>
+      )}
 
       {/* Danger zone */}
       <section>

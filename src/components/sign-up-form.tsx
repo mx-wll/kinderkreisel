@@ -15,9 +15,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 type SignUpMode = "otp" | "password";
 
 export function SignUpForm({
+  invited = false,
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: React.ComponentPropsWithoutRef<"div"> & {
+  invited?: boolean;
+}) {
   const [mode, setMode] = useState<SignUpMode>("otp");
   const [formData, setFormData] = useState({
     name: "",
@@ -153,6 +156,11 @@ export function SignUpForm({
           <CardDescription>
             Standard ist jetzt der E-Mail-Code. Passwort bleibt optional als Fallback.
           </CardDescription>
+          {invited && (
+            <p className="rounded-xl bg-teal-50 px-3 py-2 text-sm text-teal-950">
+              Du wurdest von einer Familie aus deiner Naehe eingeladen.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="mb-4 grid grid-cols-2 gap-2">

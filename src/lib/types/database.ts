@@ -10,9 +10,32 @@ export type Profile = {
   phone_consent: boolean;
   email_notifications: boolean;
   onboarding_completed_at: string | null;
+  referred_by_profile_id?: string | null;
+  referral_invite_id?: string | null;
+  referral_signed_up_at?: string | null;
+  referral_activated_at?: string | null;
   last_message_email_at: string;
   created_at: string;
   updated_at: string;
+};
+
+export type ReferralInviteStatus = "invited" | "signed_up" | "activated";
+
+export type ReferralSummary = {
+  inviteCount: number;
+  signedUpCount: number;
+  activatedCount: number;
+  hasSupporterBadge: boolean;
+  nextPerkAt: number | null;
+  recent: Array<{
+    id: string;
+    status: ReferralInviteStatus;
+    channel: string | null;
+    createdAt: number;
+    signedUpAt: number | null;
+    activatedAt: number | null;
+    invitedName: string | null;
+  }>;
 };
 
 export type Child = {
