@@ -21,15 +21,6 @@ type HomeSearchParams = {
   shoe_size?: string;
 };
 
-const EMPTY_REFERRAL_SUMMARY: ReferralSummary = {
-  inviteCount: 0,
-  signedUpCount: 0,
-  activatedCount: 0,
-  hasSupporterBadge: false,
-  nextPerkAt: 1,
-  recent: [],
-};
-
 function LandingPage() {
   return (
     <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_theme(colors.teal.50),_theme(colors.emerald.50)_45%,_theme(colors.amber.50)_100%)]">
@@ -173,17 +164,18 @@ function HomeFeed({
 }: {
   items: ItemWithSeller[];
   hasFilters: boolean;
-  referralSummary: ReferralSummary;
+  referralSummary: ReferralSummary | null;
   userItemCount: number;
   onboardingCompletedAt?: number;
 }) {
+  const referralsAvailable = referralSummary !== null;
   const showOnboardingPrompt = Boolean(onboardingCompletedAt && userItemCount === 0);
   const showLowSupplyPrompt = items.length < 6;
 
   return (
     <PullToRefresh>
       <div className="px-4 py-6">
-        <ReferralActivationPing trigger="feed_view" />
+        {referralsAvailable && <ReferralActivationPing trigger="feed_view" />}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-[family-name:var(--font-borel)]">findln</h1>
@@ -198,7 +190,7 @@ function HomeFeed({
 
         <SearchFilter />
 
-        {showOnboardingPrompt && (
+        {referralsAvailable && showOnboardingPrompt && (
           <div className="mt-4">
             <InviteFriendsDialog
               compact
@@ -212,7 +204,7 @@ function HomeFeed({
           </div>
         )}
 
-        {!showOnboardingPrompt && showLowSupplyPrompt && (
+        {referralsAvailable && !showOnboardingPrompt && showLowSupplyPrompt && (
           <div className="mt-4">
             <InviteFriendsDialog
               compact
@@ -298,7 +290,7 @@ export default async function HomePage({
     convexQuery<number>("items:countBySeller", { sellerId: session.profileId }),
     convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }).catch((error) => {
       console.error("[home] failed to load referral summary", error);
-      return EMPTY_REFERRAL_SUMMARY;
+      return null;
     }),
   ]);
 

@@ -31,22 +31,13 @@ type ItemWithReservation = Item & {
   reservations: Reservation[];
 };
 
-const EMPTY_REFERRAL_SUMMARY: ReferralSummary = {
-  inviteCount: 0,
-  signedUpCount: 0,
-  activatedCount: 0,
-  hasSupporterBadge: false,
-  nextPerkAt: 1,
-  recent: [],
-};
-
 export default async function MyProfilePage() {
   const session = await getCurrentSession();
   if (!session) return null;
 
   let typedProfile: Profile | null = null;
   let typedItems: ItemWithReservation[] = [];
-  let referralSummary: ReferralSummary = EMPTY_REFERRAL_SUMMARY;
+  let referralSummary: ReferralSummary | null = null;
   let typedReservations: Array<
     Reservation & {
       item: Item & {
@@ -124,7 +115,7 @@ export default async function MyProfilePage() {
       >("reservations:listActiveByBuyer", { buyerId: session.profileId }),
       convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }).catch((error) => {
         console.error("[profile] failed to load referral summary", error);
-        return EMPTY_REFERRAL_SUMMARY;
+        return null;
       }),
     ]);
     referralSummary = referral;
@@ -248,7 +239,7 @@ export default async function MyProfilePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold tracking-tight">Mein Profil</h1>
-          {referralSummary.hasSupporterBadge && (
+          {referralSummary?.hasSupporterBadge && (
             <Badge className="rounded-full bg-teal-700 text-white">Unterstuetzer*in</Badge>
           )}
         </div>
@@ -267,17 +258,21 @@ export default async function MyProfilePage() {
 
       <Separator />
 
-      <section>
-        <InviteFriendsDialog
-          summary={referralSummary}
-          title="Freunde einladen"
-          description="Hol Eltern, Freunde oder Nachbar*innen in deinen lokalen Kreis. Mehr Familien in der Gegend bringen mehr passende Teile direkt in die Naehe."
-          shareReason="Bitte nur an Leute schicken, die du kennst."
-          trigger={<Button className="rounded-full">Jetzt einladen</Button>}
-        />
-      </section>
+      {referralSummary && (
+        <>
+          <section>
+            <InviteFriendsDialog
+              summary={referralSummary}
+              title="Freunde einladen"
+              description="Hol Eltern, Freunde oder Nachbar*innen in deinen lokalen Kreis. Mehr Familien in der Gegend bringen mehr passende Teile direkt in die Naehe."
+              shareReason="Bitte nur an Leute schicken, die du kennst."
+              trigger={<Button className="rounded-full">Jetzt einladen</Button>}
+            />
+          </section>
 
-      <Separator />
+          <Separator />
+        </>
+      )}
 
       {/* My Items */}
       <section>
@@ -494,7 +489,7 @@ export default async function MyProfilePage() {
 
       <Separator />
 
-      {(typedReservations.length > 0 || itemsWithActiveReservations.length > 0) && (
+      {referralSummary && (typedReservations.length > 0 || itemsWithActiveReservations.length > 0) && (
         <>
           <section>
             <InviteFriendsDialog

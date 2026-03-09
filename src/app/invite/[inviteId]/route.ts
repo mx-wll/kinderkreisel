@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { convexQuery } from "@/lib/convex/server";
 import { REFERRAL_INVITE_COOKIE, getReferralCookieMaxAge } from "@/lib/referrals";
@@ -16,14 +15,13 @@ export async function GET(
     return NextResponse.redirect(destination);
   }
 
-  const cookieStore = await cookies();
-  cookieStore.set(REFERRAL_INVITE_COOKIE, inviteId, {
+  const response = NextResponse.redirect(destination);
+  response.cookies.set(REFERRAL_INVITE_COOKIE, inviteId, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: getReferralCookieMaxAge(),
   });
-
-  return NextResponse.redirect(destination);
+  return response;
 }

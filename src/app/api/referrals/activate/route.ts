@@ -21,7 +21,8 @@ export async function POST(request: Request) {
       }
     );
     return NextResponse.json(result);
-  } catch {
-    return NextResponse.json({ error: "Activation failed" }, { status: 500 });
+  } catch (error) {
+    console.error("[referrals/activate] unavailable", error);
+    return NextResponse.json({ activated: false, unavailable: true });
   }
 }

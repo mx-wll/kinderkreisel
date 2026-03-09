@@ -5,6 +5,7 @@ import { AUTH_COOKIE_NAME, verifySession } from "@/lib/auth/session";
 const PUBLIC_ROUTES = [
   "/login",
   "/signup",
+  "/invite",
   "/claim-account",
   "/reset-password",
   "/auth/confirm",

@@ -23,15 +23,6 @@ import { StartChatButton } from "@/components/start-chat-button";
 import { convexQuery } from "@/lib/convex/server";
 import { getCurrentSession } from "@/lib/auth/server";
 
-const EMPTY_REFERRAL_SUMMARY: ReferralSummary = {
-  inviteCount: 0,
-  signedUpCount: 0,
-  activatedCount: 0,
-  hasSupporterBadge: false,
-  nextPerkAt: 1,
-  recent: [],
-};
-
 export default async function ItemDetailPage({
   params,
   searchParams,
@@ -80,7 +71,7 @@ export default async function ItemDetailPage({
     const referralSummary = session
       ? await convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }).catch((error) => {
           console.error("[item-detail] failed to load referral summary", error);
-          return EMPTY_REFERRAL_SUMMARY;
+          return null;
         })
       : null;
     const myItemCount = session

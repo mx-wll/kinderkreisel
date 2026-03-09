@@ -30,6 +30,10 @@ export async function POST(request: Request) {
         { status: 429 }
       );
     }
-    return NextResponse.json({ error: "Einladung konnte nicht erstellt werden." }, { status: 500 });
+    console.error("[referrals/create] unavailable", error);
+    return NextResponse.json(
+      { error: "Einladungen sind gerade voruebergehend nicht verfuegbar." },
+      { status: 503 }
+    );
   }
 }
