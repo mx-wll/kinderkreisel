@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 import { UnreadBadge } from "@/components/unread-badge";
 
 const primaryTabs = [
-  { href: "/", label: "Home", icon: Home, activeWeight: "medium" as const },
+  { href: "/", label: "Home", icon: Home },
   { href: "/items/new", label: "Einstellen", icon: PlusCircle },
   { href: "/messages", label: "Nachrichten", icon: MessageCircle },
-  { href: "/profile", label: "Profil", icon: User, activeWeight: "medium" as const },
+  { href: "/profile", label: "Profil", icon: User },
 ] as const;
 
 export function BottomNav() {
@@ -40,7 +40,9 @@ export function BottomNav() {
               </span>
               <span
                 className={cn(
-                  tab.activeWeight === "medium" && isActive ? "font-medium" : "font-normal"
+                  isActive && (tab.href === "/" || tab.href === "/profile")
+                    ? "font-medium"
+                    : "font-normal"
                 )}
               >
                 {tab.label}
