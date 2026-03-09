@@ -1,6 +1,6 @@
 # Product Status
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 
 ## Current Runtime
 
@@ -69,5 +69,7 @@ Last updated: 2026-03-08
 - [ ] Advanced search (ranking, typo tolerance, autocomplete)
 
 ## Notes
+
+- The bottom navigation intentionally hides the `Stöbern` tab for now to match the current mobile design. The `/profiles` browse route and its functionality remain in the codebase for reuse in a future navigation pattern.
 
 Older documents in this folder may describe Supabase-era plans or migration work. The current runtime backend is Convex.
