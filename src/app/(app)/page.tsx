@@ -21,6 +21,15 @@ type HomeSearchParams = {
   shoe_size?: string;
 };
 
+const EMPTY_REFERRAL_SUMMARY: ReferralSummary = {
+  inviteCount: 0,
+  signedUpCount: 0,
+  activatedCount: 0,
+  hasSupporterBadge: false,
+  nextPerkAt: 1,
+  recent: [],
+};
+
 function LandingPage() {
   return (
     <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_theme(colors.teal.50),_theme(colors.emerald.50)_45%,_theme(colors.amber.50)_100%)]">
@@ -287,7 +296,10 @@ export default async function HomePage({
       id: session.profileId,
     }),
     convexQuery<number>("items:countBySeller", { sellerId: session.profileId }),
-    convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }),
+    convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }).catch((error) => {
+      console.error("[home] failed to load referral summary", error);
+      return EMPTY_REFERRAL_SUMMARY;
+    }),
   ]);
 
   const feed: ItemWithSeller[] = items.map((item) => ({

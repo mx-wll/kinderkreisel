@@ -31,20 +31,22 @@ type ItemWithReservation = Item & {
   reservations: Reservation[];
 };
 
+const EMPTY_REFERRAL_SUMMARY: ReferralSummary = {
+  inviteCount: 0,
+  signedUpCount: 0,
+  activatedCount: 0,
+  hasSupporterBadge: false,
+  nextPerkAt: 1,
+  recent: [],
+};
+
 export default async function MyProfilePage() {
   const session = await getCurrentSession();
   if (!session) return null;
 
   let typedProfile: Profile | null = null;
   let typedItems: ItemWithReservation[] = [];
-  let referralSummary: ReferralSummary = {
-    inviteCount: 0,
-    signedUpCount: 0,
-    activatedCount: 0,
-    hasSupporterBadge: false,
-    nextPerkAt: 1,
-    recent: [],
-  };
+  let referralSummary: ReferralSummary = EMPTY_REFERRAL_SUMMARY;
   let typedReservations: Array<
     Reservation & {
       item: Item & {
@@ -120,7 +122,10 @@ export default async function MyProfilePage() {
           expiresAt: number;
         }>
       >("reservations:listActiveByBuyer", { buyerId: session.profileId }),
-      convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }),
+      convexQuery<ReferralSummary>("referrals:getSummary", { profileId: session.profileId }).catch((error) => {
+        console.error("[profile] failed to load referral summary", error);
+        return EMPTY_REFERRAL_SUMMARY;
+      }),
     ]);
     referralSummary = referral;
 
