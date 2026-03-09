@@ -168,9 +168,16 @@ function HomeFeed({
   userItemCount: number;
   onboardingCompletedAt?: number;
 }) {
-  const referralsAvailable = referralSummary !== null;
   const showOnboardingPrompt = Boolean(onboardingCompletedAt && userItemCount === 0);
   const showLowSupplyPrompt = items.length < 6;
+  const summary = referralSummary ?? {
+    inviteCount: 0,
+    signedUpCount: 0,
+    activatedCount: 0,
+    hasSupporterBadge: false,
+    nextPerkAt: 1,
+    recent: [],
+  };
   const homeInviteTitle = showOnboardingPrompt
     ? "Deine Nachbarschaft ist bereit"
     : showLowSupplyPrompt
@@ -186,7 +193,7 @@ function HomeFeed({
   return (
     <PullToRefresh>
       <div className="px-4 py-6">
-        {referralsAvailable && <ReferralActivationPing trigger="feed_view" />}
+        {referralSummary && <ReferralActivationPing trigger="feed_view" />}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-[family-name:var(--font-borel)]">findln</h1>
@@ -201,26 +208,23 @@ function HomeFeed({
 
         <SearchFilter />
 
-        {referralsAvailable && (
-          <div className="mt-4">
-            <InviteFriendsDialog
-              compact
-              dismissKey="referral.prompt.home"
-              summary={referralSummary}
-              title={homeInviteTitle}
-              description={homeInviteDescription}
-              shareReason="Bitte nur an Eltern, Freunde oder Nachbar*innen schicken, die du wirklich kennst."
-              trigger={
-                <Button
-                  variant={showLowSupplyPrompt && !showOnboardingPrompt ? "outline" : "default"}
-                  className="rounded-full"
-                >
-                  {homeInviteButtonLabel}
-                </Button>
-              }
-            />
-          </div>
-        )}
+        <div className="mt-4">
+          <InviteFriendsDialog
+            compact
+            summary={summary}
+            title={homeInviteTitle}
+            description={homeInviteDescription}
+            shareReason="Bitte nur an Eltern, Freunde oder Nachbar*innen schicken, die du wirklich kennst."
+            trigger={
+              <Button
+                variant={showLowSupplyPrompt && !showOnboardingPrompt ? "outline" : "default"}
+                className="rounded-full"
+              >
+                {homeInviteButtonLabel}
+              </Button>
+            }
+          />
+        </div>
 
         {items.length === 0 ? (
           <div className="mt-16 flex flex-col items-center justify-center text-center">
